@@ -1,0 +1,275 @@
+<script lang="ts">
+	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
+
+	interface Assignment {
+		name: string;
+		due: string;
+		pct: string;
+		score: string;
+		feedback: string;
+	}
+
+	type Tab = 'assignments' | 'attendance';
+
+	let assignments = $state<Assignment[]>([]);
+	interface AttendanceRecord {
+		date: string;
+		code: string;
+		reason: string;
+	}
+
+	let attendance = $state<AttendanceRecord[]>([]);
+	let loading = $state(true);
+	let tabLoading = $state(false);
+	let error = $state('');
+	let tab = $state<Tab>('assignments');
+
+	function pctColor(pct: string): string {
+		if (!pct) return 'text-stone-600';
+		const num = parseInt(pct);
+		if (isNaN(num)) return 'text-stone-400';
+		if (num >= 86) return 'text-sage';
+		if (num >= 73) return 'text-amber-accent';
+		if (num >= 50) return 'text-ochre';
+		return 'text-terracotta';
+	}
+
+	function pctBg(pct: string): string {
+		if (!pct) return 'bg-stone-800';
+		const num = parseInt(pct);
+		if (isNaN(num)) return 'bg-stone-800';
+		if (num >= 86) return 'bg-sage/10';
+		if (num >= 73) return 'bg-amber-accent/10';
+		if (num >= 50) return 'bg-ochre/10';
+		return 'bg-terracotta/10';
+	}
+
+	onMount(async () => {
+		const oid = $page.params.oid;
+		const res = await fetch(`/api/classes/${oid}/assignments`);
+		if (!res.ok) {
+			error = 'Failed to load assignments';
+			loading = false;
+			return;
+		}
+		assignments = await res.json();
+		loading = false;
+	});
+
+	async function switchTab(t: Tab) {
+		if (tab === t) return;
+		tab = t;
+		if (t === 'attendance' && !attendance.length) {
+			tabLoading = true;
+			try {
+				const oid = $page.params.oid;
+				const res = await fetch(`/api/classes/${oid}/attendance`);
+				if (res.ok) attendance = await res.json();
+			} finally {
+				tabLoading = false;
+			}
+		}
+	}
+</script>
+
+<div class="min-h-screen bg-stone-950 text-stone-100 page-enter">
+	<!-- Header -->
+	<header class="border-b border-stone-800/80">
+		<div class="max-w-6xl mx-auto px-6 py-4 flex items-center gap-5">
+			<a
+				href="/dashboard"
+				class="flex items-center gap-2 text-stone-500 hover:text-stone-200 transition-colors duration-150 cursor-pointer group"
+			>
+				<span class="text-xs group-hover:-translate-x-0.5 transition-transform duration-150">←</span>
+				<span class="text-[11px] font-mono uppercase tracking-wider">Back</span>
+			</a>
+			<div class="w-px h-4 bg-stone-800"></div>
+			<h1 class="font-display font-600 text-sm text-stone-200">Class Detail</h1>
+		</div>
+	</header>
+
+	<!-- Tabs -->
+	<nav class="border-b border-stone-800/80 bg-stone-950 sticky top-0 z-10">
+		<div class="max-w-6xl mx-auto px-4 md:px-6 flex">
+			{#each [{ key: 'assignments', label: 'Assignments' }, { key: 'attendance', label: 'Attendance' }] as t}
+				<button
+					onclick={() => switchTab(t.key as Tab)}
+					class="relative px-4 md:px-5 py-3.5 text-sm whitespace-nowrap transition-colors duration-150 cursor-pointer group
+						{tab === t.key ? 'text-stone-100' : 'text-stone-500 hover:text-stone-300'}"
+				>
+					{t.label}
+					<div
+						class="absolute bottom-0 left-0 right-0 h-[2px] bg-amber-accent transition-all duration-200
+							{tab === t.key ? 'opacity-100' : 'opacity-0 group-hover:opacity-20'}"
+					></div>
+				</button>
+			{/each}
+		</div>
+	</nav>
+
+	<main class="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8">
+		{#if loading || tabLoading}
+			<div class="py-24">
+				<div class="w-32 h-[2px] mx-auto load-bar"></div>
+			</div>
+		{:else if error}
+			<div class="py-24 text-center">
+				<div class="inline-flex items-center gap-2 px-4 py-2 border border-terracotta/30 text-terracotta text-sm">
+					<span class="w-1.5 h-1.5 bg-terracotta"></span>
+					{error}
+				</div>
+			</div>
+		{:else if tab === 'assignments'}
+			<!-- Summary bar -->
+			{#if assignments.length}
+				{@const graded = assignments.filter((a) => a.pct && !isNaN(parseInt(a.pct)))}
+				{@const avg = graded.length ? Math.round(graded.reduce((s, a) => s + parseInt(a.pct), 0) / graded.length) : null}
+				<div class="mb-6 flex flex-wrap items-center gap-x-4 gap-y-1 md:gap-6 text-xs font-mono text-stone-500">
+					<span>{assignments.length} assignment{assignments.length !== 1 ? 's' : ''}</span>
+					<span class="text-stone-700">·</span>
+					<span>{graded.length} graded</span>
+					{#if avg !== null}
+						<span class="text-stone-700">·</span>
+						<span class="{pctColor(String(avg))}">avg {avg}%</span>
+					{/if}
+				</div>
+			{/if}
+
+			<!-- Desktop table -->
+			<div class="hidden md:block border border-stone-800">
+				<div class="grid grid-cols-[1fr_100px_70px_120px_1fr] gap-0 px-5 py-2.5 bg-stone-900 border-b border-stone-800 text-[10px] font-mono text-stone-500 uppercase tracking-wider">
+					<span>Assignment</span>
+					<span>Due</span>
+					<span class="text-right">%</span>
+					<span class="text-right">Score</span>
+					<span class="pl-5">Feedback</span>
+				</div>
+
+				{#each assignments as a, i}
+					<div
+						class="stagger-in grid grid-cols-[1fr_100px_70px_120px_1fr] gap-0 px-5 py-3 border-b border-stone-800/40 hover:bg-stone-900/40 transition-colors duration-100 group"
+						style="animation-delay: {i * 25}ms"
+					>
+						<span class="text-sm text-stone-200 font-500 pr-4 truncate group-hover:text-stone-50 transition-colors duration-100">
+							{a.name}
+						</span>
+						<span class="text-xs font-mono text-stone-500 self-center">
+							{a.due || '--'}
+						</span>
+						<span class="text-right self-center">
+							{#if a.pct}
+								<span class="inline-block px-2 py-0.5 font-mono text-xs font-600 {pctColor(a.pct)} {pctBg(a.pct)}">
+									{a.pct}
+								</span>
+							{:else}
+								<span class="text-stone-700 font-mono text-xs">--</span>
+							{/if}
+						</span>
+						<span class="text-right text-xs font-mono text-stone-400 self-center">
+							{a.score || '--'}
+						</span>
+						<span class="pl-5 text-xs text-stone-500 self-center truncate" title={a.feedback}>
+							{#if a.feedback}
+								<span class="inline-flex items-center gap-1.5">
+									<span class="w-1 h-1 bg-amber-dim shrink-0"></span>
+									{a.feedback}
+								</span>
+							{/if}
+						</span>
+					</div>
+				{/each}
+			</div>
+
+			<!-- Mobile cards -->
+			<div class="md:hidden grid gap-[1px] bg-stone-800/50">
+				{#each assignments as a, i}
+					<div
+						class="stagger-in bg-stone-950 px-4 py-3.5 active:bg-stone-900 transition-colors duration-100"
+						style="animation-delay: {i * 25}ms"
+					>
+						<div class="flex items-start justify-between gap-3 mb-2">
+							<span class="text-sm text-stone-200 font-500 leading-snug">{a.name}</span>
+							{#if a.pct}
+								<span class="shrink-0 px-2 py-0.5 font-mono text-xs font-600 {pctColor(a.pct)} {pctBg(a.pct)}">
+									{a.pct}
+								</span>
+							{:else}
+								<span class="shrink-0 text-stone-700 font-mono text-xs">--</span>
+							{/if}
+						</div>
+						<div class="flex items-center gap-3 text-[11px] font-mono text-stone-500">
+							{#if a.due}
+								<span>{a.due}</span>
+							{/if}
+							{#if a.score}
+								<span class="text-stone-700">·</span>
+								<span class="text-stone-400">{a.score}</span>
+							{/if}
+						</div>
+						{#if a.feedback}
+							<div class="mt-2 pt-2 border-t border-stone-800/50 flex items-start gap-1.5 text-xs text-stone-500">
+								<span class="w-1 h-1 bg-amber-dim shrink-0 mt-1.5"></span>
+								<span class="leading-relaxed">{a.feedback}</span>
+							</div>
+						{/if}
+					</div>
+				{/each}
+			</div>
+
+			{#if !assignments.length}
+				<div class="py-24 text-center">
+					<p class="text-stone-600 font-mono text-sm">No assignments yet</p>
+				</div>
+			{/if}
+
+		{:else if tab === 'attendance'}
+			{#if attendance.length}
+				<!-- Desktop table -->
+				<div class="hidden md:block border border-stone-800">
+					<div class="grid grid-cols-[140px_80px_1fr] gap-0 px-5 py-2.5 bg-stone-900 border-b border-stone-800 text-[10px] font-mono text-stone-500 uppercase tracking-wider">
+						<span>Date</span>
+						<span>Code</span>
+						<span>Reason</span>
+					</div>
+					{#each attendance as record, i}
+						<div
+							class="stagger-in grid grid-cols-[140px_80px_1fr] gap-0 px-5 py-3 border-b border-stone-800/40 hover:bg-stone-900/40 transition-colors duration-100"
+							style="animation-delay: {i * 25}ms"
+						>
+							<span class="text-xs font-mono text-stone-400">{record.date || '--'}</span>
+							<span class="text-xs font-mono font-600 {record.code === 'A' ? 'text-terracotta' : record.code === 'L' || record.code === 'AL' ? 'text-ochre' : 'text-stone-400'}">
+								{record.code || '--'}
+							</span>
+							<span class="text-xs text-stone-500 truncate">{record.reason || ''}</span>
+						</div>
+					{/each}
+				</div>
+
+				<!-- Mobile cards -->
+				<div class="md:hidden grid gap-[1px] bg-stone-800/50">
+					{#each attendance as record, i}
+						<div
+							class="stagger-in bg-stone-950 px-4 py-3.5"
+							style="animation-delay: {i * 25}ms"
+						>
+							<div class="flex items-start justify-between gap-3 mb-1.5">
+								<span class="text-sm text-stone-200 font-500">{record.date || '--'}</span>
+								<span class="shrink-0 text-xs font-mono font-600 px-2 py-0.5 {record.code === 'A' ? 'text-terracotta bg-terracotta/10' : record.code === 'L' || record.code === 'AL' ? 'text-ochre bg-ochre/10' : 'text-stone-400 bg-stone-800'}">
+									{record.code || '--'}
+								</span>
+							</div>
+							{#if record.reason}
+								<div class="text-[11px] font-mono text-stone-500">{record.reason}</div>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<div class="py-24 text-center">
+					<p class="text-stone-600 font-mono text-sm">No attendance records</p>
+				</div>
+			{/if}
+		{/if}
+	</main>
+</div>

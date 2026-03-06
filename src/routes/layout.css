@@ -1,0 +1,105 @@
+@import 'tailwindcss';
+
+@theme {
+	--font-display: 'Syne', sans-serif;
+	--font-body: 'DM Sans', sans-serif;
+	--font-mono: 'JetBrains Mono', monospace;
+	--font-brand: 'Geist Mono', monospace;
+
+	--color-stone-950: #0a0908;
+	--color-stone-900: #121110;
+	--color-stone-850: #1a1816;
+	--color-stone-800: #23201d;
+	--color-stone-750: #2c2924;
+	--color-stone-700: #36322c;
+	--color-stone-600: #4d4840;
+	--color-stone-500: #6b655b;
+	--color-stone-400: #918a7e;
+	--color-stone-300: #b5aea2;
+	--color-stone-200: #d4cec5;
+	--color-stone-100: #e8e4dc;
+	--color-stone-50: #f5f2ec;
+
+	--color-amber-accent: #c8a455;
+	--color-amber-dim: #9e7f3a;
+	--color-amber-glow: #d4b06820;
+
+	--color-terracotta: #b84a35;
+	--color-sage: #5d8a5d;
+	--color-ochre: #c49a3c;
+}
+
+* {
+	border-radius: 0 !important;
+}
+
+::selection {
+	background: var(--color-amber-accent);
+	color: var(--color-stone-950);
+}
+
+html {
+	background: var(--color-stone-950);
+	color: var(--color-stone-100);
+	font-family: var(--font-body);
+}
+
+/* custom scrollbar */
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+::-webkit-scrollbar-thumb {
+	background: var(--color-stone-700);
+}
+::-webkit-scrollbar-thumb:hover {
+	background: var(--color-stone-600);
+}
+
+/* loading bar animation */
+@keyframes loadbar {
+	0% { transform: translateX(-100%); }
+	50% { transform: translateX(0%); }
+	100% { transform: translateX(100%); }
+}
+
+.load-bar {
+	overflow: hidden;
+	position: relative;
+}
+.load-bar::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(90deg, transparent, var(--color-amber-accent), transparent);
+	animation: loadbar 1.2s ease-in-out infinite;
+}
+
+/* stagger animation */
+@keyframes slideUp {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.stagger-in {
+	animation: slideUp 0.3s ease-out both;
+}
+
+/* page transition */
+@keyframes fadeIn {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+.page-enter {
+	animation: fadeIn 0.2s ease-out;
+}
