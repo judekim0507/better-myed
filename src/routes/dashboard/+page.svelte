@@ -513,188 +513,120 @@
             <section class="py-10 md:py-16 max-w-[600px]">
                 <!-- Hero -->
                 <div class="stagger-in mb-16 md:mb-20">
-                    <p
-                        class="text-[10px] font-mono text-amber-accent uppercase tracking-widest mb-4"
-                    >
-                        About
-                    </p>
-                    <h2
-                        class="font-brand font-800 text-2xl md:text-3xl text-stone-50 tracking-tight leading-tight mb-5"
-                    >
+                    <p class="text-[10px] font-mono text-amber-accent uppercase tracking-widest mb-4">About</p>
+                    <h2 class="font-brand font-800 text-2xl md:text-3xl text-stone-50 tracking-tight leading-tight mb-5">
                         MyEd costs $95.4M.<br />This costs $0.
                     </h2>
                     <p class="text-stone-500 text-sm leading-relaxed">
-                        BETTER-MYED is an independent, open-source wrapper
-                        around MyEducation BC — the student portal used across
-                        British Columbia. It exists because the official app is,
-                        frankly, unusable.
+                        BETTER-MYED reverse-engineers the Aspen servlet and wraps it in an interface that actually works. Your grades, assignments, attendance, and schedule — without using MyEd.
                     </p>
                 </div>
 
-                <!-- The problem -->
-                <div
-                    class="stagger-in mb-14 md:mb-18"
-                    style="animation-delay: 60ms"
-                >
+                <!-- Why this exists -->
+                <div class="stagger-in mb-14 md:mb-18" style="animation-delay: 60ms">
                     <div class="flex items-center gap-4 mb-6">
-                        <span
-                            class="font-mono text-[10px] text-stone-700 uppercase tracking-widest"
-                            >01</span
-                        >
+                        <span class="font-mono text-[10px] text-stone-700 uppercase tracking-widest">01</span>
                         <div class="h-px flex-1 bg-stone-800/60"></div>
                     </div>
-                    <h3
-                        class="font-display font-600 text-stone-200 text-base mb-4"
-                    >
-                        The problem
-                    </h3>
+                    <h3 class="font-display font-600 text-stone-200 text-base mb-4">Why this exists</h3>
                     <p class="text-stone-500 text-sm leading-relaxed mb-4">
-                        The BC government spent $95.4 million on MyEducation BC
-                        (Follett Aspen). What they shipped is a decade-old Java
-                        Struts application with server-rendered HTML tables, no
-                        API, and zero mobile support.
+                        The BC government spent <span class="text-stone-300">$95.4 million</span> on MyEducation BC (Follett Aspen). What they shipped is (probably more than) a decade-old Java Struts app with server-rendered HTML tables, no mobile support, and a UI that looks like it was last updated when Internet Explorer 6 was the standard.
                     </p>
-                    <p class="text-stone-500 text-sm leading-relaxed mb-6">
-                        On desktop it barely functions. On mobile — which is how
-                        most students actually access it — it's completely
-                        broken. Buttons overlap, tables overflow off-screen, and
-                        navigation menus require hover states that don't exist
-                        on touch devices.
+                    <p class="text-stone-500 text-sm leading-relaxed mb-4">
+                        It barely functions on desktop — on mobile, it's completely unusable, as it is not responsive.
                     </p>
-                    <div class="grid grid-cols-2 gap-[1px] bg-stone-800/40">
+                    <p class="text-stone-600 text-xs leading-relaxed mb-6 italic">
+                        For reference, ArriveCAN — a national app — was $60 million.
+                    </p>
+                    <div class="grid grid-cols-3 gap-[1px] bg-stone-800/40">
                         <div class="bg-stone-950 p-4">
-                            <p
-                                class="font-mono font-700 text-xl text-amber-accent mb-1"
-                            >
-                                $95.4M
-                            </p>
-                            <p
-                                class="text-[10px] font-mono text-stone-600 uppercase tracking-wider"
-                            >
-                                Taxpayer cost
-                            </p>
+                            <p class="font-mono font-700 text-lg text-amber-accent mb-1">$95.4M</p>
+                            <p class="text-[10px] font-mono text-stone-600 uppercase tracking-wider">Taxpayer cost</p>
                         </div>
                         <div class="bg-stone-950 p-4">
-                            <p
-                                class="font-mono font-700 text-xl text-stone-200 mb-1"
-                            >
-                                0
-                            </p>
-                            <p
-                                class="text-[10px] font-mono text-stone-600 uppercase tracking-wider"
-                            >
-                                Mobile support
-                            </p>
+                            <p class="font-mono font-700 text-lg text-stone-200 mb-1">0</p>
+                            <p class="text-[10px] font-mono text-stone-600 uppercase tracking-wider">Mobile support</p>
+                        </div>
+                        <div class="bg-stone-950 p-4">
+                            <p class="font-mono font-700 text-lg text-stone-200 mb-1">0</p>
+                            <p class="text-[10px] font-mono text-stone-600 uppercase tracking-wider">Public API</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- How it works -->
-                <div
-                    class="stagger-in mb-14 md:mb-18"
-                    style="animation-delay: 120ms"
-                >
+                <div class="stagger-in mb-14 md:mb-18" style="animation-delay: 120ms">
                     <div class="flex items-center gap-4 mb-6">
-                        <span
-                            class="font-mono text-[10px] text-stone-700 uppercase tracking-widest"
-                            >02</span
-                        >
+                        <span class="font-mono text-[10px] text-stone-700 uppercase tracking-widest">02</span>
                         <div class="h-px flex-1 bg-stone-800/60"></div>
                     </div>
-                    <h3
-                        class="font-display font-600 text-stone-200 text-base mb-4"
-                    >
-                        How it works
-                    </h3>
+                    <h3 class="font-display font-600 text-stone-200 text-base mb-4">How it works</h3>
                     <p class="text-stone-500 text-sm leading-relaxed mb-6">
-                        BETTER-MYED reverse-engineers the Aspen servlet. Your
-                        credentials authenticate directly with MyEd's REST API —
-                        no middleman databases, no data storage. Everything is
-                        proxied server-side and parsed in real-time.
+                        Your credentials authenticate directly with MyEd's REST API. No middleman databases, no data storage. Everything is proxied server-side and parsed in real-time.
                     </p>
                     <div class="border border-stone-800">
-                        {#each [{ step: "01", text: "Your credentials hit MyEd's REST API → JWT token" }, { step: "02", text: "JWT exchanged for a Struts session via SSO" }, { step: "03", text: "Server-side routes proxy requests, parse HTML → JSON" }, { step: "04", text: "Clean data rendered in a responsive interface" }] as item, i}
-                            <div
-                                class="flex items-start gap-4 px-4 py-3.5 {i < 3
-                                    ? 'border-b border-stone-800/50'
-                                    : ''}"
-                            >
-                                <span
-                                    class="font-mono text-[10px] text-amber-dim mt-0.5 shrink-0"
-                                    >{item.step}</span
-                                >
-                                <span class="text-sm text-stone-400"
-                                    >{item.text}</span
-                                >
+                        {#each [{ step: "01", text: "Credentials hit MyEd's REST API → JWT" }, { step: "02", text: "JWT exchanged for a Struts session via SSO" }, { step: "03", text: "SvelteKit routes proxy requests, parse HTML → JSON" }, { step: "04", text: "Frontend never talks to MyEd directly — no CORS" }] as item, i}
+                            <div class="flex items-start gap-4 px-4 py-3.5 {i < 3 ? 'border-b border-stone-800/50' : ''}">
+                                <span class="font-mono text-[10px] text-amber-dim mt-0.5 shrink-0">{item.step}</span>
+                                <span class="text-sm text-stone-400">{item.text}</span>
                             </div>
                         {/each}
                     </div>
                 </div>
 
                 <!-- Stack -->
-                <div
-                    class="stagger-in mb-14 md:mb-18"
-                    style="animation-delay: 180ms"
-                >
+                <div class="stagger-in mb-14 md:mb-18" style="animation-delay: 180ms">
                     <div class="flex items-center gap-4 mb-6">
-                        <span
-                            class="font-mono text-[10px] text-stone-700 uppercase tracking-widest"
-                            >03</span
-                        >
+                        <span class="font-mono text-[10px] text-stone-700 uppercase tracking-widest">03</span>
                         <div class="h-px flex-1 bg-stone-800/60"></div>
                     </div>
-                    <h3
-                        class="font-display font-600 text-stone-200 text-base mb-4"
-                    >
-                        Stack
-                    </h3>
+                    <h3 class="font-display font-600 text-stone-200 text-base mb-4">Stack</h3>
+                    <p class="text-stone-500 text-sm leading-relaxed mb-5">
+                        No database. Sessions in httpOnly cookies, credentials encrypted with AES-256-GCM.
+                    </p>
                     <div class="flex flex-wrap gap-2">
-                        {#each ["SvelteKit", "Svelte 5", "Tailwind v4", "Bun", "Cheerio", "AES-256-GCM"] as tech, i}
-                            <span
-                                class="px-3 py-1.5 border border-stone-800 text-[11px] font-mono text-stone-500 hover:border-stone-700 hover:text-stone-300 transition-colors duration-150"
-                            >
+                        {#each ["SvelteKit", "Svelte 5", "Tailwind v4", "Bun", "Cheerio", "AES-256-GCM"] as tech}
+                            <span class="px-3 py-1.5 border border-stone-800 text-[11px] font-mono text-stone-500 hover:border-stone-700 hover:text-stone-300 transition-colors duration-150">
                                 {tech}
                             </span>
                         {/each}
                     </div>
                 </div>
 
-                <!-- Credit -->
-                <div class="stagger-in" style="animation-delay: 240ms">
+                <!-- Disclaimer -->
+                <div class="stagger-in mb-14 md:mb-18" style="animation-delay: 240ms">
                     <div class="flex items-center gap-4 mb-6">
-                        <span
-                            class="font-mono text-[10px] text-stone-700 uppercase tracking-widest"
-                            >04</span
-                        >
+                        <span class="font-mono text-[10px] text-stone-700 uppercase tracking-widest">04</span>
                         <div class="h-px flex-1 bg-stone-800/60"></div>
                     </div>
-                    <div class="flex items-center justify-between">
+                    <h3 class="font-display font-600 text-stone-200 text-base mb-4">Disclaimer</h3>
+                    <p class="text-stone-500 text-sm leading-relaxed mb-3">
+                        Not affiliated with the BC Ministry of Education, Follett, or MyEducation BC. This is an independent wrapper that uses your own credentials to access your own data. Credentials are encrypted at rest and never stored in plaintext.
+                    </p>
+                    <p class="text-stone-600 text-xs italic">
+                        Pls don't block this, Aspen (you may use the code tho lol).
+                    </p>
+                </div>
+
+                <!-- Credit -->
+                <div class="stagger-in" style="animation-delay: 300ms">
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="h-px flex-1 bg-stone-800/60"></div>
+                    </div>
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-5">
                         <div>
-                            <h3
-                                class="font-display font-600 text-stone-200 text-base mb-1"
-                            >
-                                Built by Jude Kim
-                            </h3>
-                            <p class="text-stone-600 text-xs">
-                                Because students deserve better.
-                            </p>
+                            <h3 class="font-display font-600 text-stone-200 text-base mb-1">Built by Jude Kim</h3>
+                            <p class="text-stone-600 text-xs">Because students deserve better.</p>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <a
-                                href="https://judekim.com"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="px-3 py-1.5 border border-stone-800 text-[11px] font-mono text-stone-500 hover:border-amber-accent hover:text-amber-accent transition-colors duration-150"
-                            >
+                        <div class="flex items-center gap-2">
+                            <a href="https://judekim.com" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 border border-stone-800 text-[11px] font-mono text-stone-500 hover:border-amber-accent hover:text-amber-accent transition-colors duration-150">
                                 Website
                             </a>
-                            <a
-                                href="https://github.com/judekim0507"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="px-3 py-1.5 border border-stone-800 text-[11px] font-mono text-stone-500 hover:border-amber-accent hover:text-amber-accent transition-colors duration-150"
-                            >
+                            <a href="https://github.com/judekim0507" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 border border-stone-800 text-[11px] font-mono text-stone-500 hover:border-amber-accent hover:text-amber-accent transition-colors duration-150">
                                 GitHub
+                            </a>
+                            <a href="https://judekim.com/support" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 border border-amber-accent/30 bg-amber-accent/5 text-[11px] font-mono text-amber-accent hover:bg-amber-accent/10 hover:border-amber-accent/50 transition-colors duration-150">
+                                Support
                             </a>
                         </div>
                     </div>
