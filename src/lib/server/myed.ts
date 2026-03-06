@@ -215,11 +215,20 @@ export async function getAssignments(session: MyEdSession): Promise<Assignment[]
 			const cells = $(row).find('td');
 			const text = cells.map((__, cell) => $(cell).text().trim()).get();
 			if (text.length >= 8) {
+				let pct = text[6];
+				const score = text[7];
+				// Compute percentage from score fraction (e.g. "17/20" → "85")
+				if (score && score.includes('/')) {
+					const [num, den] = score.split('/').map((s) => parseFloat(s.trim()));
+					if (den > 0 && !isNaN(num) && !isNaN(den)) {
+						pct = String(Math.round((num / den) * 100));
+					}
+				}
 				assignments.push({
 					name: text[1],
 					due: text[3],
-					pct: text[6],
-					score: text[7],
+					pct,
+					score,
 					feedback: text.length > 9 ? text[9] : '',
 				});
 			}

@@ -10,20 +10,22 @@
 		feedback: string;
 	}
 
-	type Tab = 'assignments' | 'attendance';
-
-	let assignments = $state<Assignment[]>([]);
 	interface AttendanceRecord {
 		date: string;
 		code: string;
 		reason: string;
 	}
 
+	type Tab = 'assignments' | 'attendance';
+
+	let assignments = $state<Assignment[]>([]);
 	let attendance = $state<AttendanceRecord[]>([]);
 	let loading = $state(true);
 	let tabLoading = $state(false);
 	let error = $state('');
 	let tab = $state<Tab>('assignments');
+
+	let className = $state('');
 
 	function pctColor(pct: string): string {
 		if (!pct) return 'text-stone-600';
@@ -46,6 +48,9 @@
 	}
 
 	onMount(async () => {
+		const url = new URL(window.location.href);
+		className = url.searchParams.get('name') || '';
+
 		const oid = $page.params.oid;
 		const res = await fetch(`/api/classes/${oid}/assignments`);
 		if (!res.ok) {
@@ -73,19 +78,29 @@
 	}
 </script>
 
+<svelte:head>
+	{#if className}
+		<title>{className} — BETTER-MYED</title>
+	{/if}
+</svelte:head>
+
 <div class="min-h-screen bg-stone-950 text-stone-100 page-enter">
 	<!-- Header -->
 	<header class="border-b border-stone-800/80">
-		<div class="max-w-6xl mx-auto px-6 py-4 flex items-center gap-5">
+		<div class="max-w-6xl mx-auto px-4 md:px-6 py-4 flex items-center gap-4 min-w-0">
 			<a
 				href="/dashboard"
-				class="flex items-center gap-2 text-stone-500 hover:text-stone-200 transition-colors duration-150 cursor-pointer group"
+				class="flex items-center gap-2 text-stone-500 hover:text-stone-200 transition-colors duration-150 cursor-pointer group shrink-0"
 			>
 				<span class="text-xs group-hover:-translate-x-0.5 transition-transform duration-150">←</span>
 				<span class="text-[11px] font-mono uppercase tracking-wider">Back</span>
 			</a>
-			<div class="w-px h-4 bg-stone-800"></div>
-			<h1 class="font-display font-600 text-sm text-stone-200">Class Detail</h1>
+			<div class="w-px h-4 bg-stone-800 shrink-0"></div>
+			{#if className}
+				<h1 class="font-display font-600 text-sm text-stone-200 truncate">{className}</h1>
+			{:else}
+				<h1 class="font-display font-600 text-sm text-stone-200">Class Detail</h1>
+			{/if}
 		</div>
 	</header>
 
@@ -110,8 +125,39 @@
 
 	<main class="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8">
 		{#if loading || tabLoading}
-			<div class="py-24">
-				<div class="w-32 h-[2px] mx-auto load-bar"></div>
+			<!-- Skeleton loader -->
+			<div class="space-y-0">
+				<!-- Summary skeleton -->
+				<div class="mb-6 flex items-center gap-4">
+					<div class="h-3 w-24 bg-stone-900 skeleton"></div>
+					<div class="h-3 w-16 bg-stone-900 skeleton" style="animation-delay: 50ms"></div>
+					<div class="h-3 w-20 bg-stone-900 skeleton" style="animation-delay: 100ms"></div>
+				</div>
+				<!-- Table skeleton (desktop) -->
+				<div class="hidden md:block border border-stone-800">
+					<div class="px-5 py-3 bg-stone-900 border-b border-stone-800">
+						<div class="h-2.5 w-full bg-stone-800 skeleton"></div>
+					</div>
+					{#each Array(6) as _, i}
+						<div class="px-5 py-4 border-b border-stone-800/40 flex items-center gap-6">
+							<div class="h-3 flex-1 bg-stone-900 skeleton" style="animation-delay: {i * 60}ms"></div>
+							<div class="h-3 w-16 bg-stone-900 skeleton" style="animation-delay: {i * 60 + 20}ms"></div>
+							<div class="h-3 w-10 bg-stone-900 skeleton" style="animation-delay: {i * 60 + 40}ms"></div>
+						</div>
+					{/each}
+				</div>
+				<!-- Card skeleton (mobile) -->
+				<div class="md:hidden grid gap-[1px] bg-stone-800/50">
+					{#each Array(5) as _, i}
+						<div class="bg-stone-950 px-4 py-4 space-y-3">
+							<div class="flex items-center justify-between gap-4">
+								<div class="h-3.5 flex-1 bg-stone-900 skeleton" style="animation-delay: {i * 60}ms"></div>
+								<div class="h-5 w-10 bg-stone-900 skeleton" style="animation-delay: {i * 60 + 30}ms"></div>
+							</div>
+							<div class="h-2.5 w-28 bg-stone-900 skeleton" style="animation-delay: {i * 60 + 60}ms"></div>
+						</div>
+					{/each}
+				</div>
 			</div>
 		{:else if error}
 			<div class="py-24 text-center">

@@ -150,7 +150,53 @@
 
     <!-- Content -->
     <main class="max-w-6xl mx-auto px-4 md:px-6">
-        {#if loading || tabLoading}
+        {#if loading}
+            <!-- Dashboard skeleton -->
+            <section class="pt-10 pb-8 md:pt-14 md:pb-10 border-b border-stone-800/50">
+                <div class="h-3 w-24 bg-stone-900 skeleton mb-4"></div>
+                <div class="h-7 w-48 bg-stone-900 skeleton mb-3"></div>
+                <div class="h-3.5 w-36 bg-stone-900 skeleton" style="animation-delay: 100ms"></div>
+            </section>
+            <section class="py-6 border-b border-stone-800/50">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-[1px] bg-stone-800/40">
+                    {#each Array(4) as _, i}
+                        <div class="bg-stone-950 p-4 md:p-5">
+                            <div class="h-2.5 w-14 bg-stone-900 skeleton mb-3" style="animation-delay: {i * 50}ms"></div>
+                            <div class="h-6 w-10 bg-stone-900 skeleton" style="animation-delay: {i * 50 + 25}ms"></div>
+                        </div>
+                    {/each}
+                </div>
+            </section>
+            <section class="py-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="h-2.5 w-16 bg-stone-900 skeleton"></div>
+                </div>
+                <div class="hidden md:block border border-stone-800">
+                    <div class="px-5 py-3 bg-stone-900 border-b border-stone-800">
+                        <div class="h-2.5 w-full bg-stone-800 skeleton"></div>
+                    </div>
+                    {#each Array(5) as _, i}
+                        <div class="px-5 py-4 border-b border-stone-800/40 flex items-center gap-6">
+                            <div class="h-3.5 flex-1 bg-stone-900 skeleton" style="animation-delay: {i * 60}ms"></div>
+                            <div class="h-3 w-24 bg-stone-900 skeleton" style="animation-delay: {i * 60 + 20}ms"></div>
+                            <div class="h-3 w-12 bg-stone-900 skeleton" style="animation-delay: {i * 60 + 40}ms"></div>
+                            <div class="h-5 w-10 bg-stone-900 skeleton" style="animation-delay: {i * 60 + 60}ms"></div>
+                        </div>
+                    {/each}
+                </div>
+                <div class="md:hidden grid gap-[1px] bg-stone-800/50">
+                    {#each Array(4) as _, i}
+                        <div class="bg-stone-950 px-4 py-4 space-y-2.5">
+                            <div class="flex items-center justify-between gap-4">
+                                <div class="h-3.5 flex-1 bg-stone-900 skeleton" style="animation-delay: {i * 60}ms"></div>
+                                <div class="h-5 w-10 bg-stone-900 skeleton" style="animation-delay: {i * 60 + 30}ms"></div>
+                            </div>
+                            <div class="h-2.5 w-40 bg-stone-900 skeleton" style="animation-delay: {i * 60 + 60}ms"></div>
+                        </div>
+                    {/each}
+                </div>
+            </section>
+        {:else if tabLoading}
             <div class="py-24">
                 <div class="w-32 h-[2px] mx-auto load-bar"></div>
             </div>
@@ -292,7 +338,7 @@
                     </div>
                     {#each classes as cls, i}
                         <a
-                            href="/class/{cls.oid}"
+                            href="/class/{cls.oid}?name={encodeURIComponent(cls.name)}"
                             class="stagger-in grid grid-cols-[1fr_160px_80px_60px] gap-0 px-5 py-3.5 border-b border-stone-800/40 hover:bg-stone-900/50 transition-colors duration-100 group"
                             style="animation-delay: {160 + i * 35}ms"
                         >
@@ -340,7 +386,7 @@
                 <div class="md:hidden grid gap-[1px] bg-stone-800/50">
                     {#each classes as cls, i}
                         <a
-                            href="/class/{cls.oid}"
+                            href="/class/{cls.oid}?name={encodeURIComponent(cls.name)}"
                             class="stagger-in block bg-stone-950 px-4 py-3.5 active:bg-stone-900 transition-colors duration-100"
                             style="animation-delay: {160 + i * 35}ms"
                         >

@@ -10,6 +10,15 @@
 
 <svelte:head>
     <title>BETTER-MYED</title>
+    <meta name="description" content="A faster, cleaner interface for MyEducation BC. View your grades, assignments, attendance, and schedule — without using MyEd." />
+    <meta property="og:title" content="BETTER-MYED" />
+    <meta property="og:description" content="A faster, cleaner interface for MyEducation BC. View your grades, assignments, attendance, and schedule — without using MyEd." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="BETTER-MYED" />
+    <meta name="twitter:description" content="A faster, cleaner interface for MyEducation BC." />
+    <meta name="twitter:image" content="/og.png" />
 </svelte:head>
 {@render children()}
 
