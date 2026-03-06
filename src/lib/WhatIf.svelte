@@ -181,10 +181,12 @@
 			</div>
 		{:else}
 			<!-- DESKTOP: Centered modal -->
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<div
 				class="whatif-modal absolute inset-0 flex items-center justify-center p-8"
 				class:whatif-modal-in={!closing}
 				class:whatif-modal-out={closing}
+				onclick={close}
 			>
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<div class="w-full max-w-lg max-h-[80vh] flex flex-col" onclick={(e) => e.stopPropagation()}>

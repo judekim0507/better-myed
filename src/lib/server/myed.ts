@@ -217,9 +217,12 @@ export async function getAssignments(session: MyEdSession): Promise<Assignment[]
 			if (text.length >= 8) {
 				let pct = text[6];
 				const score = text[7];
-				// Compute percentage from score fraction (e.g. "17/20" → "85")
-				if (score && score.includes('/')) {
-					const [num, den] = score.split('/').map((s) => parseFloat(s.trim()));
+				// Compute percentage from score fraction (e.g. "16.5/18.0" → "92")
+				// Handle ASCII slash, fraction slash (⁄), division slash (∕), etc.
+				const slashMatch = score?.match(/(\d+(?:\.\d+)?)\s*[\/⁄∕]\s*(\d+(?:\.\d+)?)/);
+				if (slashMatch) {
+					const num = parseFloat(slashMatch[1]);
+					const den = parseFloat(slashMatch[2]);
 					if (den > 0 && !isNaN(num) && !isNaN(den)) {
 						pct = String(Math.round((num / den) * 100));
 					}
