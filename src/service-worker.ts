@@ -48,8 +48,10 @@ sw.addEventListener('fetch', (event) => {
 			// Network first for everything else
 			try {
 				const response = await fetch(event.request);
-				// Cache successful page navigations
-				if (response.ok && response.type === 'basic') {
+				// Only cache static pages (login, not dashboard/class)
+				const noCache = ['/dashboard', '/class/'];
+				const shouldCache = response.ok && response.type === 'basic' && !noCache.some((p) => url.pathname.startsWith(p));
+				if (shouldCache) {
 					cache.put(event.request, response.clone());
 				}
 				return response;

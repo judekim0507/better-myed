@@ -15,7 +15,13 @@ async function fetchAttendance(session: any, oid: string) {
 	return getAttendance(session);
 }
 
+const OID_PATTERN = /^[A-Za-z0-9]{10,20}$/;
+
 export const GET: RequestHandler = async ({ params, cookies }) => {
+	if (!OID_PATTERN.test(params.oid)) {
+		return json({ error: 'Invalid class ID' }, { status: 400 });
+	}
+
 	let session: any = await getSession(cookies);
 	if (!session) return json({ error: 'Not logged in' }, { status: 401 });
 

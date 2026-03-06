@@ -1,8 +1,12 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 
-// In production, set CREDS_KEY env var (32-byte hex). Falls back to a random key (resets on restart).
-const KEY = process.env.CREDS_KEY
-	? Buffer.from(process.env.CREDS_KEY, 'hex')
+const CREDS_KEY_HEX = process.env.CREDS_KEY;
+if (!CREDS_KEY_HEX && process.env.NODE_ENV === 'production') {
+	throw new Error('CREDS_KEY environment variable is required in production (64-char hex string for 32-byte key)');
+}
+
+const KEY = CREDS_KEY_HEX
+	? Buffer.from(CREDS_KEY_HEX, 'hex')
 	: randomBytes(32);
 
 export function encryptCreds(username: string, password: string): string {
@@ -17,6 +21,7 @@ export function encryptCreds(username: string, password: string): string {
 export function decryptCreds(data: string): { username: string; password: string } | null {
 	try {
 		const buf = Buffer.from(data, 'base64');
+		if (buf.length < 33) return null;
 		const iv = buf.subarray(0, 16);
 		const tag = buf.subarray(16, 32);
 		const encrypted = buf.subarray(32);

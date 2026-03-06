@@ -7,7 +7,11 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 	let session: any = await getSession(cookies);
 	if (!session) return json({ error: 'Not logged in' }, { status: 401 });
 
-	const direction = url.searchParams.get('dir') as 'prev' | 'next' | null;
+	const dirRaw = url.searchParams.get('dir');
+	if (dirRaw && dirRaw !== 'prev' && dirRaw !== 'next') {
+		return json({ error: 'Invalid direction' }, { status: 400 });
+	}
+	const direction = dirRaw as 'prev' | 'next' | null;
 
 	try {
 		const data = direction

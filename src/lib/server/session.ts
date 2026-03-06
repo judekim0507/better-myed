@@ -2,6 +2,13 @@ import type { Cookies } from '@sveltejs/kit';
 import { login, type MyEdSession } from './myed';
 import { decryptCreds } from './creds';
 
+const COOKIE_OPTS = {
+	path: '/',
+	httpOnly: true,
+	secure: true,
+	sameSite: 'lax' as const,
+};
+
 /**
  * Get a valid session, auto-re-logging in if needed.
  * Returns null if no session and no saved creds.
@@ -30,9 +37,7 @@ export async function relogin(cookies: Cookies): Promise<MyEdSession | null> {
 	if (!session) return null;
 
 	cookies.set('myed_session', session.cookies, {
-		path: '/',
-		httpOnly: true,
-		sameSite: 'lax',
+		...COOKIE_OPTS,
 		maxAge: 60 * 60,
 	});
 
@@ -44,24 +49,18 @@ export async function relogin(cookies: Cookies): Promise<MyEdSession | null> {
  */
 export function persistSession(cookies: Cookies, session: MyEdSession & { _formData?: Record<string, string> }) {
 	cookies.set('myed_session', session.cookies, {
-		path: '/',
-		httpOnly: true,
-		sameSite: 'lax',
+		...COOKIE_OPTS,
 		maxAge: 60 * 60,
 	});
 	if (session._formData) {
 		cookies.set('myed_formdata', JSON.stringify(session._formData), {
-			path: '/',
-			httpOnly: true,
-			sameSite: 'lax',
+			...COOKIE_OPTS,
 			maxAge: 60 * 60,
 		});
 	}
 	if (session.token) {
 		cookies.set('myed_token', session.token, {
-			path: '/',
-			httpOnly: true,
-			sameSite: 'lax',
+			...COOKIE_OPTS,
 			maxAge: 60 * 60,
 		});
 	}
