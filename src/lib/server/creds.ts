@@ -1,8 +1,8 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 
 const CREDS_KEY_HEX = process.env.CREDS_KEY;
-if (!CREDS_KEY_HEX && process.env.NODE_ENV === 'production') {
-	throw new Error('CREDS_KEY environment variable is required in production (64-char hex string for 32-byte key)');
+if (!CREDS_KEY_HEX && process.env.NODE_ENV === 'production' && !process.env.BUILDING) {
+	console.warn('WARNING: CREDS_KEY not set. Remember Me will not persist across restarts.');
 }
 
 const KEY = CREDS_KEY_HEX

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import WhatIf from '$lib/WhatIf.svelte';
 
 	interface Assignment {
 		name: string;
@@ -26,6 +27,7 @@
 	let tab = $state<Tab>('assignments');
 
 	let className = $state('');
+	let whatIfOpen = $state(false);
 
 	function pctColor(pct: string): string {
 		if (!pct) return 'text-stone-600';
@@ -106,7 +108,7 @@
 
 	<!-- Tabs -->
 	<nav class="border-b border-stone-800/80 bg-stone-950 sticky top-0 z-10">
-		<div class="max-w-6xl mx-auto px-4 md:px-6 flex">
+		<div class="max-w-6xl mx-auto px-4 md:px-6 flex items-center">
 			{#each [{ key: 'assignments', label: 'Assignments' }, { key: 'attendance', label: 'Attendance' }] as t}
 				<button
 					onclick={() => switchTab(t.key as Tab)}
@@ -120,6 +122,14 @@
 					></div>
 				</button>
 			{/each}
+			{#if !loading && assignments.some((a) => a.score && a.score.includes('/'))}
+				<button
+					onclick={() => whatIfOpen = true}
+					class="ml-auto px-3 py-1.5 text-[11px] font-mono uppercase tracking-wider text-amber-accent hover:text-amber-accent/80 transition-colors duration-150 cursor-pointer"
+				>
+					What If?
+				</button>
+			{/if}
 		</div>
 	</nav>
 
@@ -318,4 +328,7 @@
 			{/if}
 		{/if}
 	</main>
+
 </div>
+
+<WhatIf {assignments} bind:open={whatIfOpen} />
