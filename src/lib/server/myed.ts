@@ -326,27 +326,76 @@ export async function getGroups(session: MyEdSession): Promise<string[][]> {
 	return groups;
 }
 
-export async function getCalendar(session: MyEdSession): Promise<string[]> {
-	const r = await fetch(
-		`${BASE_URL}/planner.do?navkey=plannerCalendar.plannerView.planner`,
-		{ headers: { cookie: session.cookies }, redirect: 'follow' }
-	);
+export interface CalendarEvent {
+	name: string;
+	section: string;
+	date: string;
+	type: 'assignment' | 'event';
+}
+
+export interface CalendarData {
+	month: string;
+	events: CalendarEvent[];
+}
+
+export async function getCalendar(session: MyEdSession): Promise<CalendarData> {
+	// Load planner page to establish session context
+	const initR = await fetch(`${BASE_URL}/planner.do?navkey=plannerCalendar.plannerView.planner`, {
+		headers: { cookie: session.cookies }, redirect: 'follow',
+	});
+	const initHtml = await initR.text();
+	session.token = extractToken(initHtml);
+
+	// Try parsing the full planner page first
+	const result = parseCalendarHtml(initHtml);
+	if (result.month) return result;
+
+	// If month title missing (full page vs AJAX fragment), navigate prev+next to get AJAX format
+	await fetch(`${BASE_URL}/plannerCalendar.do?userEvent=70`, {
+		headers: { cookie: session.cookies }, redirect: 'follow',
+	});
+	const r = await fetch(`${BASE_URL}/plannerCalendar.do?userEvent=60`, {
+		headers: { cookie: session.cookies }, redirect: 'follow',
+	});
+	return parseCalendarHtml(await r.text());
+}
+
+export async function navigateCalendarMonth(session: MyEdSession, direction: 'prev' | 'next'): Promise<CalendarData> {
+	const userEvent = direction === 'next' ? '60' : '70';
+	const r = await fetch(`${BASE_URL}/plannerCalendar.do?userEvent=${userEvent}`, {
+		headers: { cookie: session.cookies }, redirect: 'follow',
+	});
 	const html = await r.text();
+	return parseCalendarHtml(html);
+}
+
+function parseCalendarHtml(html: string): CalendarData {
 	const $ = cheerio.load(html);
-	const events: string[] = [];
+	const events: CalendarEvent[] = [];
 
-	$('tr')
-		.filter((_, el) => ($(el).attr('class') ?? '').includes('listCell'))
-		.each((_, row) => {
-			const cells = $(row).find('td');
-			const text = cells
-				.map((__, cell) => $(cell).text().trim())
-				.get()
-				.filter(Boolean);
-			if (text.length) events.push(text.join(' | '));
+	const monthTitle = $('.plannerNavigatorTitle').text().trim() || '';
+
+	$('td.plannerDateCell').each((_, cell) => {
+		const dateId = $(cell).attr('id') || '';
+		const isNonSession = ($(cell).attr('class') || '').includes('plannerNonsession');
+
+		$(cell).find('.plannerAssignment, .compactPlannerEvent').each((__, eventEl) => {
+			const name = $(eventEl).find('.plannerEventName').text().trim();
+			const section = $(eventEl).find('.plannerEventSection').text().trim();
+			const isAssignment = ($(eventEl).attr('class') || '').includes('plannerAssignment');
+
+			if (name) {
+				events.push({
+					name,
+					section,
+					date: dateId,
+					type: isAssignment ? 'assignment' : 'event',
+				});
+			}
 		});
+	});
 
-	return events;
+	return { month: monthTitle, events };
 }
 
 export async function getLocker(session: MyEdSession): Promise<string[][]> {

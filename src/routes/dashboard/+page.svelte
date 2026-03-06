@@ -26,7 +26,30 @@
     let tab = $state<Tab>("home");
     let studentInfo = $state<Record<string, string>>({});
     let groups = $state<string[][]>([]);
-    let calendar = $state<string[]>([]);
+    interface CalendarEvent {
+        name: string;
+        section: string;
+        date: string;
+        type: "assignment" | "event";
+    }
+
+    interface CalendarData {
+        month: string;
+        events: CalendarEvent[];
+    }
+
+    let calendarData = $state<CalendarData | null>(null);
+    let calendarNav = $state(false);
+
+    async function navCalendar(dir: 'prev' | 'next') {
+        calendarNav = true;
+        try {
+            const res = await fetch(`/api/calendar?dir=${dir}`);
+            if (res.ok) calendarData = await res.json();
+        } finally {
+            calendarNav = false;
+        }
+    }
     let locker = $state<string[][]>([]);
     let tabLoading = $state(false);
 
@@ -51,9 +74,9 @@
             } else if (t === "groups" && !groups.length) {
                 const res = await fetch("/api/groups");
                 if (res.ok) groups = await res.json();
-            } else if (t === "calendar" && !calendar.length) {
+            } else if (t === "calendar" && !calendarData) {
                 const res = await fetch("/api/calendar");
-                if (res.ok) calendar = await res.json();
+                if (res.ok) calendarData = await res.json();
             } else if (t === "locker" && !locker.length) {
                 const res = await fetch("/api/locker");
                 if (res.ok) locker = await res.json();
@@ -513,23 +536,126 @@
                 {/if}
             </section>
         {:else if tab === "calendar"}
-            <section class="py-8">
-                <div class="grid gap-[1px] bg-stone-800/50">
-                    {#each calendar as event, i}
-                        <div
-                            class="stagger-in bg-stone-950 px-4 md:px-5 py-3.5 text-sm text-stone-300 flex items-center gap-3"
-                            style="animation-delay: {i * 40}ms"
+            <section class="py-6 md:py-8">
+                {#if calendarData}
+                    {@const month = calendarData.month}
+                    {@const events = calendarData.events}
+                    {@const eventsByDate = events.reduce((map, e) => { (map[e.date] = map[e.date] || []).push(e); return map; }, {} as Record<string, CalendarEvent[]>)}
+                    {@const monthMatch = month.match(/(\w+),?\s*(\d{4})/)}
+                    {@const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']}
+                    {@const monthIdx = monthMatch ? monthNames.indexOf(monthMatch[1]) : 0}
+                    {@const year = monthMatch ? parseInt(monthMatch[2]) : 2026}
+                    {@const firstDay = new Date(year, monthIdx, 1).getDay()}
+                    {@const daysInMonth = new Date(year, monthIdx + 1, 0).getDate()}
+                    {@const today = new Date()}
+                    {@const isCurrentMonth = today.getFullYear() === year && today.getMonth() === monthIdx}
+
+                    <!-- Month navigation -->
+                    <div class="flex items-center justify-between mb-6">
+                        <button
+                            onclick={() => navCalendar('prev')}
+                            disabled={calendarNav}
+                            class="px-3 py-1.5 text-stone-500 hover:text-stone-200 transition-colors duration-150 cursor-pointer disabled:opacity-30"
                         >
-                            <span class="w-1 h-1 bg-amber-accent shrink-0"
-                            ></span>
-                            {event}
+                            <span class="text-xs font-mono">&larr; Prev</span>
+                        </button>
+                        <div class="text-center">
+                            <h2 class="font-display font-600 text-lg text-stone-200">{month || 'Calendar'}</h2>
                         </div>
-                    {/each}
-                </div>
-                {#if !calendar.length}
+                        <button
+                            onclick={() => navCalendar('next')}
+                            disabled={calendarNav}
+                            class="px-3 py-1.5 text-stone-500 hover:text-stone-200 transition-colors duration-150 cursor-pointer disabled:opacity-30"
+                        >
+                            <span class="text-xs font-mono">Next &rarr;</span>
+                        </button>
+                    </div>
+
+                    <!-- Calendar grid -->
+                    <div class="border border-stone-800 {calendarNav ? 'opacity-40' : ''} transition-opacity duration-200">
+                        <!-- Day headers -->
+                        <div class="grid grid-cols-7 bg-stone-900 border-b border-stone-800">
+                            {#each ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as day}
+                                <div class="py-2 text-center text-[10px] font-mono text-stone-500 uppercase tracking-wider">{day}</div>
+                            {/each}
+                        </div>
+
+                        <!-- Date cells -->
+                        <div class="grid grid-cols-7">
+                            {#each Array(firstDay) as _, i}
+                                <div class="min-h-[70px] md:min-h-[90px] border-b border-r border-stone-800/40 bg-stone-950/50"></div>
+                            {/each}
+                            {#each Array(daysInMonth) as _, i}
+                                {@const day = i + 1}
+                                {@const dateStr = `${year}-${String(monthIdx + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`}
+                                {@const dayEvents = eventsByDate[dateStr] || []}
+                                {@const isToday = isCurrentMonth && today.getDate() === day}
+                                {@const isWeekend = (firstDay + i) % 7 === 0 || (firstDay + i) % 7 === 6}
+                                <div class="min-h-[70px] md:min-h-[90px] border-b border-r border-stone-800/40 p-1 md:p-1.5 {isWeekend ? 'bg-stone-950/50' : 'bg-stone-950'} hover:bg-stone-900/40 transition-colors duration-100 group">
+                                    <div class="flex items-center justify-between mb-0.5">
+                                        <span class="text-[11px] font-mono {isToday ? 'text-amber-accent font-700' : 'text-stone-500'} {isToday ? 'bg-amber-accent/10 px-1.5 py-0.5' : ''}">{day}</span>
+                                        {#if dayEvents.length > 0}
+                                            <span class="hidden md:inline text-[9px] font-mono text-stone-700">{dayEvents.length}</span>
+                                        {/if}
+                                    </div>
+                                    <div class="space-y-0.5">
+                                        {#each dayEvents.slice(0, 3) as event}
+                                            <div
+                                                class="px-1 py-0.5 text-[9px] md:text-[10px] leading-tight truncate {event.type === 'assignment' ? 'text-sage bg-sage/8' : 'text-amber-accent bg-amber-accent/8'}"
+                                                title="{event.name} — {event.section}"
+                                            >
+                                                {event.name}
+                                            </div>
+                                        {/each}
+                                        {#if dayEvents.length > 3}
+                                            <div class="text-[9px] font-mono text-stone-600 px-1">+{dayEvents.length - 3} more</div>
+                                        {/if}
+                                    </div>
+                                </div>
+                            {/each}
+                            {#each Array((7 - (firstDay + daysInMonth) % 7) % 7) as _}
+                                <div class="min-h-[70px] md:min-h-[90px] border-b border-r border-stone-800/40 bg-stone-950/50"></div>
+                            {/each}
+                        </div>
+                    </div>
+
+                    <!-- Event list below calendar -->
+                    {#if events.length}
+                        <div class="mt-6">
+                            <h3 class="text-[10px] font-mono text-stone-500 uppercase tracking-wider mb-3">Events this month</h3>
+                            <div class="grid gap-[1px] bg-stone-800/50">
+                                {#each events as event, i}
+                                    <div
+                                        class="stagger-in bg-stone-950 px-4 md:px-5 py-3 flex items-start gap-3"
+                                        style="animation-delay: {i * 25}ms"
+                                    >
+                                        <span class="w-1.5 h-1.5 mt-1.5 shrink-0 {event.type === 'assignment' ? 'bg-sage' : 'bg-amber-accent'}"></span>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="text-sm text-stone-200 font-500 truncate">{event.name}</div>
+                                            <div class="flex items-center gap-2 mt-0.5 text-[11px] font-mono text-stone-500">
+                                                <span>{event.date}</span>
+                                                {#if event.section}
+                                                    <span class="text-stone-700">·</span>
+                                                    <span class="truncate">{event.section}</span>
+                                                {/if}
+                                            </div>
+                                        </div>
+                                        <span class="text-[9px] font-mono uppercase tracking-wider shrink-0 px-1.5 py-0.5 {event.type === 'assignment' ? 'text-sage bg-sage/10' : 'text-amber-accent bg-amber-accent/10'}">{event.type}</span>
+                                    </div>
+                                {/each}
+                            </div>
+                        </div>
+                    {/if}
+
+                    {#if !events.length}
+                        <div class="mt-6 py-12 text-center">
+                            <p class="text-stone-600 font-mono text-sm">No events this month</p>
+                        </div>
+                    {/if}
+                {:else}
                     <div class="py-24 text-center">
                         <p class="text-stone-600 font-mono text-sm">
-                            No upcoming events
+                            No calendar data
                         </p>
                     </div>
                 {/if}
