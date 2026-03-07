@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
+    import { goto } from "$app/navigation";
     import { createWebHaptics } from "web-haptics/svelte";
     import NumberFlow from "@number-flow/svelte";
 
@@ -225,7 +226,7 @@
 
         const res = await fetch("/api/classes");
         if (!res.ok) {
-            window.location.href = "/";
+            goto("/");
             return;
         }
         classes = await res.json();
@@ -235,7 +236,14 @@
     async function loadTab(t: Tab) {
         if (tab === t) return;
         haptic.trigger("selection");
-        tab = t;
+
+        const update = () => { tab = t; };
+        if (document.startViewTransition) {
+            document.startViewTransition(update);
+        } else {
+            update();
+        }
+
         tabLoading = true;
         try {
             if (t === "info" && !Object.keys(studentInfo).length) {
@@ -335,7 +343,7 @@
             <button
                 onclick={async () => {
                     await fetch("/api/logout", { method: "POST" });
-                    window.location.href = "/";
+                    goto("/");
                 }}
                 class="text-[11px] font-mono text-stone-500 uppercase tracking-wider hover:text-stone-300 transition-colors duration-150 cursor-pointer"
             >
@@ -496,8 +504,7 @@
                 </div>
             </section>
         {:else}
-        {#key tab}
-        <div class="tab-enter">
+        <div style="view-transition-name: tab-content">
         {#if tab === "home"}
             {@const gradedClasses = classes.filter(
                 (c) => c.grade && !isNaN(parseFloat(c.grade)),
@@ -1753,7 +1760,6 @@
             </section>
         {/if}
         </div>
-        {/key}
         {/if}
     </main>
 </div>

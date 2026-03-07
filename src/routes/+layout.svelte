@@ -1,11 +1,22 @@
 <script lang="ts">
     import "./layout.css";
     import { dev } from "$app/environment";
+    import { onNavigate } from "$app/navigation";
     import { injectAnalytics } from "@vercel/analytics/sveltekit";
 
     injectAnalytics({ mode: dev ? "development" : "production" });
 
     let { children } = $props();
+
+    onNavigate((navigation) => {
+        if (!document.startViewTransition) return;
+        return new Promise((resolve) => {
+            document.startViewTransition(async () => {
+                resolve();
+                await navigation.complete;
+            });
+        });
+    });
 </script>
 
 <svelte:head>

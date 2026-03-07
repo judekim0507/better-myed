@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { createWebHaptics } from 'web-haptics/svelte';
 
 	const haptic = createWebHaptics();
@@ -33,7 +34,7 @@
 				return;
 			}
 			haptic.trigger('success');
-			window.location.href = '/dashboard';
+			goto('/dashboard');
 		} catch {
 			error = 'Connection failed';
 			haptic.trigger('error');
