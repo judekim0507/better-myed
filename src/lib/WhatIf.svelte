@@ -248,38 +248,50 @@
 		border-color: var(--color-amber-accent);
 	}
 
-	/* Slider */
+	/* Slider — fat touch target, thin visual track */
 	.whatif-slider {
 		-webkit-appearance: none;
 		appearance: none;
-		height: 2px;
-		background: var(--color-stone-800);
+		height: 44px;
+		background: transparent;
 		outline: none;
 		cursor: pointer;
+		position: relative;
+	}
+	/* Thin visible track via pseudo on the container */
+	.whatif-slider::-webkit-slider-runnable-track {
+		height: 2px;
+		background: var(--color-stone-800);
+	}
+	.whatif-slider::-moz-range-track {
+		height: 2px;
+		background: var(--color-stone-800);
+		border: none;
 	}
 	.whatif-slider::-webkit-slider-thumb {
 		-webkit-appearance: none;
 		appearance: none;
-		width: 12px;
-		height: 12px;
+		width: 20px;
+		height: 20px;
 		background: var(--color-amber-accent);
-		border: 2px solid var(--color-stone-950);
+		border: 3px solid var(--color-stone-950);
+		margin-top: -9px;
 		cursor: pointer;
 		transition: transform 0.1s ease, box-shadow 0.1s ease;
 	}
 	.whatif-slider::-webkit-slider-thumb:hover {
-		transform: scale(1.25);
+		transform: scale(1.2);
 		box-shadow: 0 0 8px rgba(200, 164, 85, 0.4);
 	}
 	.whatif-slider::-webkit-slider-thumb:active {
-		transform: scale(1.4);
+		transform: scale(1.3);
 		box-shadow: 0 0 12px rgba(200, 164, 85, 0.5);
 	}
 	.whatif-slider::-moz-range-thumb {
-		width: 12px;
-		height: 12px;
+		width: 20px;
+		height: 20px;
 		background: var(--color-amber-accent);
-		border: 2px solid var(--color-stone-950);
+		border: 3px solid var(--color-stone-950);
 		cursor: pointer;
 	}
 
