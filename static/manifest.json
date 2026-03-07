@@ -1,7 +1,7 @@
 {
 	"name": "BETTER-MYED",
 	"short_name": "BETTER-MYED",
-	"description": "A faster, cleaner interface for MyEducation BC.",
+	"description": "A faster, cleaner interface for MyEducation BC. Check grades, transcript, graduation progress, and report cards.",
 	"start_url": "/",
 	"display": "standalone",
 	"background_color": "#0a0908",

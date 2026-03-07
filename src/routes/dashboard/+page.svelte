@@ -272,6 +272,10 @@
     });
 </script>
 
+<svelte:head>
+    <title>Dashboard — BETTER-MYED</title>
+</svelte:head>
+
 <div
     class="min-h-screen bg-stone-950 text-stone-100 page-enter overflow-x-hidden"
 >

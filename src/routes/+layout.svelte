@@ -9,23 +9,25 @@
 </script>
 
 <svelte:head>
-    <title>BETTER-MYED</title>
+    <title>BETTER-MYED — A Faster MyEducation BC Interface</title>
     <meta
         name="description"
-        content="A faster, cleaner interface for MyEducation BC. View your grades, assignments, attendance, and schedule — without using MyEd."
+        content="A faster, cleaner interface for MyEducation BC (MyEd). Check grades, transcript, graduation progress, assignments, attendance, and report cards — beautifully redesigned for students."
     />
-    <meta property="og:title" content="BETTER-MYED" />
+    <meta name="keywords" content="MyEducation BC, MyEd, Better MyEd, BC student portal, grades, transcript, graduation, report cards, assignments, attendance, schedule" />
+    <meta property="og:title" content="BETTER-MYED — A Faster MyEducation BC Interface" />
     <meta
         property="og:description"
-        content="A faster, cleaner interface for MyEducation BC. View your grades, assignments, attendance, and schedule — without using MyEd."
+        content="A faster, cleaner interface for MyEducation BC. Check grades, transcript, graduation progress, and report cards — beautifully redesigned."
     />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="/og.png" />
+    <meta property="og:site_name" content="BETTER-MYED" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="BETTER-MYED" />
+    <meta name="twitter:title" content="BETTER-MYED — A Faster MyEducation BC Interface" />
     <meta
         name="twitter:description"
-        content="A faster, cleaner interface for MyEducation BC."
+        content="A faster, cleaner interface for MyEducation BC. Check grades, transcript, graduation progress, and report cards."
     />
     <meta name="twitter:image" content="/og.png" />
 </svelte:head>

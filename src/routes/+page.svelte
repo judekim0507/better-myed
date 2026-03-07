@@ -38,6 +38,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Login — BETTER-MYED</title>
+</svelte:head>
+
 <div class="min-h-screen bg-stone-950 flex flex-col items-center justify-center px-6 py-16 relative overflow-hidden page-enter">
 	<!-- Background texture — subtle crosshatch -->
 	<div class="absolute inset-0 opacity-[0.025]" style="background-image: url('data:image/svg+xml,<svg width=&quot;60&quot; height=&quot;60&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;><line x1=&quot;0&quot; y1=&quot;60&quot; x2=&quot;60&quot; y2=&quot;0&quot; stroke=&quot;white&quot; stroke-width=&quot;0.4&quot;/></svg>'); background-size: 60px 60px;"></div>
