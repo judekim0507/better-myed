@@ -721,7 +721,7 @@
                     </div>
 
                     <!-- Calendar grid -->
-                    <div class="border border-stone-800 {calendarNav ? 'opacity-40' : ''} transition-opacity duration-200">
+                    <div class="border border-stone-800 overflow-hidden {calendarNav ? 'opacity-40' : ''} transition-opacity duration-200">
                         <!-- Day headers -->
                         <div class="grid grid-cols-7 bg-stone-900 border-b border-stone-800">
                             {#each ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as day}
@@ -770,21 +770,21 @@
 
                     <!-- Event list below calendar -->
                     {#if events.length}
-                        <div class="mt-6">
+                        <div class="mt-6 overflow-hidden">
                             <h3 class="text-[10px] font-mono text-stone-500 uppercase tracking-wider mb-3">Events this month</h3>
                             <div class="grid gap-[1px] bg-stone-800/50">
                                 {#each events as event, i}
                                     <div
-                                        class="stagger-in bg-stone-950 px-4 md:px-5 py-3 flex items-start gap-3"
+                                        class="stagger-in bg-stone-950 px-4 md:px-5 py-3 flex items-start gap-3 min-w-0"
                                         style="animation-delay: {i * 25}ms"
                                     >
                                         <span class="w-1.5 h-1.5 mt-1.5 shrink-0 {event.type === 'assignment' ? 'bg-sage' : 'bg-amber-accent'}"></span>
                                         <div class="min-w-0 flex-1">
                                             <div class="text-sm text-stone-200 font-500 truncate">{event.name}</div>
-                                            <div class="flex items-center gap-2 mt-0.5 text-[11px] font-mono text-stone-500">
-                                                <span>{event.date}</span>
+                                            <div class="flex items-center gap-2 mt-0.5 text-[11px] font-mono text-stone-500 min-w-0">
+                                                <span class="shrink-0">{event.date}</span>
                                                 {#if event.section}
-                                                    <span class="text-stone-700">·</span>
+                                                    <span class="text-stone-700 shrink-0">·</span>
                                                     <span class="truncate">{event.section}</span>
                                                 {/if}
                                             </div>
