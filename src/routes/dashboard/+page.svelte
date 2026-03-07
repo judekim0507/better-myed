@@ -208,7 +208,7 @@
     });
 </script>
 
-<div class="min-h-screen bg-stone-950 text-stone-100 page-enter">
+<div class="min-h-screen bg-stone-950 text-stone-100 page-enter overflow-x-hidden">
     <!-- Header -->
     <header class="border-b border-stone-800/80">
         <div

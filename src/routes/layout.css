@@ -44,19 +44,17 @@ html {
 	font-family: var(--font-body);
 }
 
-/* custom scrollbar */
+/* Hide all scrollbars — feel native */
 ::-webkit-scrollbar {
-	width: 6px;
-	height: 6px;
+	display: none;
 }
-::-webkit-scrollbar-track {
-	background: transparent;
+html {
+	scrollbar-width: none;
 }
-::-webkit-scrollbar-thumb {
-	background: var(--color-stone-700);
-}
-::-webkit-scrollbar-thumb:hover {
-	background: var(--color-stone-600);
+
+/* Prevent horizontal overflow */
+html, body {
+	overflow-x: hidden;
 }
 
 /* loading bar animation */
