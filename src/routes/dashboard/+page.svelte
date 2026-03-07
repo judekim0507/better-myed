@@ -15,13 +15,14 @@
         grade: string | null;
     }
 
-    type Tab = "home" | "info" | "groups" | "calendar" | "locker" | "about";
+    type Tab = "home" | "info" | "groups" | "calendar" | "reports" | "locker" | "about";
 
     const tabs: { key: Tab; label: string }[] = [
         { key: "home", label: "Overview" },
         { key: "info", label: "Profile" },
         { key: "groups", label: "Groups" },
         { key: "calendar", label: "Calendar" },
+        { key: "reports", label: "Reports" },
         { key: "locker", label: "Locker" },
         { key: "about", label: "About" },
     ];
@@ -56,6 +57,15 @@
         }
     }
     let locker = $state<string[][]>([]);
+    interface Report {
+        name: string;
+        size: string;
+        date: string;
+        creator: string;
+        description: string;
+        oid: string;
+    }
+    let reports = $state<Report[] | null>(null);
     let tabLoading = $state(false);
 
     // --- Streak logic ---
@@ -155,6 +165,9 @@
             } else if (t === "calendar" && !calendarData) {
                 const res = await fetch("/api/calendar");
                 if (res.ok) calendarData = await res.json();
+            } else if (t === "reports" && reports === null) {
+                const res = await fetch("/api/reports");
+                if (res.ok) reports = await res.json();
             } else if (t === "locker" && !locker.length) {
                 const res = await fetch("/api/locker");
                 if (res.ok) locker = await res.json();
@@ -806,6 +819,57 @@
                         <p class="text-stone-600 font-mono text-sm">
                             No calendar data
                         </p>
+                    </div>
+                {/if}
+            </section>
+        {:else if tab === "reports"}
+            <section class="py-8">
+                {#if reports && reports.length}
+                    <div class="border border-stone-800">
+                        <div class="px-5 py-3 bg-stone-900 border-b border-stone-800">
+                            <h2 class="text-[11px] font-mono font-500 text-stone-400 uppercase tracking-wider">Published Reports</h2>
+                        </div>
+                        {#each reports as report, i}
+                            <a
+                                href="/api/reports?oid={encodeURIComponent(report.oid)}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="stagger-in flex items-start gap-4 px-5 py-4 border-b border-stone-800/40 hover:bg-stone-900/50 transition-colors duration-100 group"
+                                style="animation-delay: {i * 40}ms"
+                            >
+                                <!-- PDF icon -->
+                                <div class="shrink-0 w-9 h-11 bg-terracotta/10 border border-terracotta/20 flex items-center justify-center mt-0.5">
+                                    <span class="text-[9px] font-mono font-700 text-terracotta uppercase">PDF</span>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm text-stone-200 font-500 group-hover:text-stone-50 transition-colors truncate">{report.name}</div>
+                                    {#if report.description}
+                                        <div class="text-xs text-stone-500 mt-0.5 truncate">{report.description}</div>
+                                    {/if}
+                                    <div class="flex items-center gap-2 mt-1.5 text-[11px] font-mono text-stone-600">
+                                        {#if report.date}
+                                            <span>{report.date}</span>
+                                        {/if}
+                                        {#if report.creator}
+                                            <span class="text-stone-700">·</span>
+                                            <span>{report.creator}</span>
+                                        {/if}
+                                        {#if report.size}
+                                            <span class="text-stone-700">·</span>
+                                            <span>{report.size}</span>
+                                        {/if}
+                                    </div>
+                                </div>
+                                <!-- Download arrow -->
+                                <div class="shrink-0 self-center text-stone-700 group-hover:text-stone-400 transition-colors">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12l7 7 7-7" /></svg>
+                                </div>
+                            </a>
+                        {/each}
+                    </div>
+                {:else}
+                    <div class="py-24 text-center">
+                        <p class="text-stone-600 font-mono text-sm">No published reports</p>
                     </div>
                 {/if}
             </section>

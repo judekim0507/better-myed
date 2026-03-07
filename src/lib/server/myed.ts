@@ -402,6 +402,111 @@ function parseCalendarHtml(html: string): CalendarData {
 	return { month: monthTitle, events };
 }
 
+export interface PublishedReport {
+	name: string;
+	size: string;
+	date: string;
+	creator: string;
+	description: string;
+	oid: string;
+}
+
+export async function getPublishedReports(session: MyEdSession): Promise<PublishedReport[]> {
+	// First hit home.do to establish context
+	await fetch(`${BASE_URL}/home.do`, {
+		headers: { cookie: session.cookies },
+		redirect: 'follow',
+	});
+
+	// Then fetch the published reports widget
+	const r = await fetch(
+		`${BASE_URL}/publishedReportsWidget.do?groupPageWidgetOid=GPW000000sgrwa&widgetId=publishedReports_8`,
+		{ headers: { cookie: session.cookies }, redirect: 'follow' }
+	);
+	const html = await r.text();
+	const $ = cheerio.load(html);
+	const reports: PublishedReport[] = [];
+
+	// Each report is a <tr> inside #publishedList with .portletListCell cells
+	// Structure: [filename cell (has nested table with onclick containing fileDownload.do URL)] [date] [creator] [description]
+	$('#publishedList > tr:has(.portletListCell), #publishedList > tbody > tr:has(.portletListCell)').each((_, row) => {
+		const cells = $(row).children('td.portletListCell');
+		if (cells.length < 4) return;
+
+		// Filename cell contains a nested table with onclick handler holding the download URL
+		const filenameCell = cells.eq(0);
+		const onclickEl = filenameCell.find('[onclick]').first();
+		const onclick = onclickEl.attr('onclick') ?? '';
+		const urlMatch = onclick.match(/['"]([^'"]*fileDownload\.do[^'"]*)['"]/);
+		if (!urlMatch) return;
+
+		const downloadPath = urlMatch[1];
+		const oidMatch = downloadPath.match(/oid=([^&]+)/);
+		if (!oidMatch) return;
+
+		// Name is text content of the pointer cell (skip the image)
+		const name = filenameCell.find('td.pointer').first().text().trim();
+		const size = filenameCell.find('.fileDownloadInfo').text().trim();
+		const date = cells.eq(1).text().trim();
+		const creator = cells.eq(2).text().trim();
+		const description = cells.eq(3).text().trim();
+
+		if (name) {
+			reports.push({ name, size, date, creator, description, oid: oidMatch[1] });
+		}
+	});
+
+	return reports;
+}
+
+export async function getReportPdf(session: MyEdSession, reportOid: string): Promise<Response> {
+	// Re-fetch the widget to get a fresh download URL with valid auth token
+	await fetch(`${BASE_URL}/home.do`, {
+		headers: { cookie: session.cookies },
+		redirect: 'follow',
+	});
+	const widgetRes = await fetch(
+		`${BASE_URL}/publishedReportsWidget.do?groupPageWidgetOid=GPW000000sgrwa&widgetId=publishedReports_8`,
+		{ headers: { cookie: session.cookies }, redirect: 'follow' }
+	);
+	const html = await widgetRes.text();
+	const $ = cheerio.load(html);
+
+	// Find fresh download URL matching the OID
+	let freshUrl = '';
+	$('#publishedList > tr:has(.portletListCell), #publishedList > tbody > tr:has(.portletListCell)').each((_, row) => {
+		if (freshUrl) return;
+		const onclick = $(row).find('[onclick]').first().attr('onclick') ?? '';
+		const urlMatch = onclick.match(/['"]([^'"]*fileDownload\.do[^'"]*)['"]/);
+		if (urlMatch && urlMatch[1].includes(reportOid)) {
+			freshUrl = `${BASE_URL}/${urlMatch[1]}`;
+		}
+	});
+
+	if (!freshUrl) {
+		throw new Error('Could not find fresh download URL for report');
+	}
+
+	// First fetch returns HTML with a window.open(rewriteUrl('...temp/file.pdf'))
+	const dlRes = await fetch(freshUrl, {
+		headers: { cookie: session.cookies },
+		redirect: 'follow',
+	});
+	const dlHtml = await dlRes.text();
+
+	// Extract the actual PDF URL from the JavaScript
+	const pdfMatch = dlHtml.match(/rewriteUrl\(['"]([^'"]+)['"]\)/);
+	if (!pdfMatch) {
+		throw new Error('Could not find PDF URL in download response');
+	}
+
+	return fetch(pdfMatch[1], {
+		headers: { cookie: session.cookies },
+		redirect: 'follow',
+	});
+}
+
+
 export async function getLocker(session: MyEdSession): Promise<string[][]> {
 	const r = await fetch(
 		`${BASE_URL}/studentLockerList.do?navkey=locker.files.list`,
