@@ -79,6 +79,46 @@
     }
     let locker = $state<string[][]>([]);
 
+    // Swipe gesture
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchDeltaX = $state(0);
+    let dashSwiping = $state(false);
+    const SWIPE_THRESHOLD = 50;
+    const tabKeys = tabs.map((t) => t.key);
+
+    function onTouchStart(e: TouchEvent) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchDeltaX = 0;
+        dashSwiping = false;
+    }
+
+    function onTouchMove(e: TouchEvent) {
+        const dx = e.touches[0].clientX - touchStartX;
+        const dy = e.touches[0].clientY - touchStartY;
+        if (!dashSwiping && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            dashSwiping = true;
+        }
+        if (dashSwiping) {
+            e.preventDefault();
+            touchDeltaX = dx;
+        }
+    }
+
+    function onTouchEnd() {
+        if (dashSwiping && Math.abs(touchDeltaX) > SWIPE_THRESHOLD) {
+            const currentIdx = tabKeys.indexOf(tab);
+            if (touchDeltaX < 0 && currentIdx < tabKeys.length - 1) {
+                loadTab(tabKeys[currentIdx + 1]);
+            } else if (touchDeltaX > 0 && currentIdx > 0) {
+                loadTab(tabKeys[currentIdx - 1]);
+            }
+        }
+        touchDeltaX = 0;
+        dashSwiping = false;
+    }
+
     interface TranscriptEntry {
         year: string;
         grade: string;
@@ -435,7 +475,14 @@
     </nav>
 
     <!-- Content -->
-    <main class="max-w-6xl mx-auto px-4 md:px-6">
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <main
+        class="max-w-6xl mx-auto px-4 md:px-6"
+        ontouchstart={onTouchStart}
+        ontouchmove={onTouchMove}
+        ontouchend={onTouchEnd}
+        style="transform: translateX({dashSwiping ? Math.max(-80, Math.min(80, touchDeltaX * 0.4)) : 0}px); transition: {dashSwiping ? 'none' : 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)'};"
+    >
         {#if loading}
             <!-- Dashboard skeleton -->
             <section

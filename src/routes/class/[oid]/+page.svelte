@@ -33,6 +33,47 @@
 	let className = $state('');
 	let whatIfOpen = $state(false);
 
+	// Swipe gesture state
+	let touchStartX = 0;
+	let touchStartY = 0;
+	let touchDeltaX = $state(0);
+	let swiping = $state(false);
+	const SWIPE_THRESHOLD = 50;
+	const tabs: Tab[] = ['assignments', 'attendance'];
+
+	function onTouchStart(e: TouchEvent) {
+		touchStartX = e.touches[0].clientX;
+		touchStartY = e.touches[0].clientY;
+		touchDeltaX = 0;
+		swiping = false;
+	}
+
+	function onTouchMove(e: TouchEvent) {
+		const dx = e.touches[0].clientX - touchStartX;
+		const dy = e.touches[0].clientY - touchStartY;
+		// Only swipe if horizontal movement dominates
+		if (!swiping && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+			swiping = true;
+		}
+		if (swiping) {
+			e.preventDefault();
+			touchDeltaX = dx;
+		}
+	}
+
+	function onTouchEnd() {
+		if (swiping && Math.abs(touchDeltaX) > SWIPE_THRESHOLD) {
+			const currentIdx = tabs.indexOf(tab);
+			if (touchDeltaX < 0 && currentIdx < tabs.length - 1) {
+				switchTab(tabs[currentIdx + 1]);
+			} else if (touchDeltaX > 0 && currentIdx > 0) {
+				switchTab(tabs[currentIdx - 1]);
+			}
+		}
+		touchDeltaX = 0;
+		swiping = false;
+	}
+
 	function pctColor(pct: string): string {
 		if (!pct) return 'text-stone-600';
 		const num = parseInt(pct);
@@ -138,7 +179,14 @@
 		</div>
 	</nav>
 
-	<main class="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8">
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<main
+		class="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8 swipe-content"
+		ontouchstart={onTouchStart}
+		ontouchmove={onTouchMove}
+		ontouchend={onTouchEnd}
+		style="transform: translateX({swiping ? Math.max(-80, Math.min(80, touchDeltaX * 0.4)) : 0}px); transition: {swiping ? 'none' : 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)'};"
+	>
 		{#if loading || tabLoading}
 			<!-- Skeleton loader -->
 			<div class="space-y-0">
