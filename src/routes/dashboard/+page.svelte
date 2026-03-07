@@ -176,8 +176,52 @@
         streakReady = true;
     }
 
+    // --- PWA install prompt ---
+    let deferredPrompt = $state<any>(null);
+    let showInstallBanner = $state(false);
+    let isIos = $state(false);
+
+    function dismissInstall() {
+        showInstallBanner = false;
+        localStorage.setItem("pwa_dismissed", Date.now().toString());
+    }
+
+    async function installPwa() {
+        if (!deferredPrompt) return;
+        haptic.trigger("medium");
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === "accepted") {
+            haptic.trigger("success");
+        }
+        deferredPrompt = null;
+        showInstallBanner = false;
+    }
+
     onMount(async () => {
         computeStreak();
+
+        // PWA: check if already installed or dismissed recently
+        const isStandalone = window.matchMedia("(display-mode: standalone)").matches
+            || (navigator as any).standalone === true;
+        const dismissed = localStorage.getItem("pwa_dismissed");
+        const dismissedRecently = dismissed && Date.now() - parseInt(dismissed) < 7 * 24 * 60 * 60 * 1000;
+
+        if (!isStandalone && !dismissedRecently) {
+            // iOS detection
+            const ua = navigator.userAgent;
+            isIos = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+            if (isIos) {
+                showInstallBanner = true;
+            } else {
+                window.addEventListener("beforeinstallprompt", (e: Event) => {
+                    e.preventDefault();
+                    deferredPrompt = e;
+                    showInstallBanner = true;
+                });
+            }
+        }
 
         const res = await fetch("/api/classes");
         if (!res.ok) {
@@ -299,6 +343,30 @@
             </button>
         </div>
     </header>
+
+    <!-- PWA Install Banner — thin top strip -->
+    {#if showInstallBanner}
+        <div class="bg-amber-accent/5 px-4 md:px-6 py-1.5">
+            <div class="max-w-6xl mx-auto flex items-center justify-center gap-3 text-[11px] font-mono">
+                {#if isIos}
+                    <span class="text-stone-400">Tap <svg class="inline w-3 h-3 text-amber-accent -mt-px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> → <span class="text-stone-200">Add to Home Screen</span></span>
+                {:else}
+                    <span class="text-stone-400">Install as app for instant access</span>
+                    <button
+                        onclick={installPwa}
+                        class="text-amber-accent hover:text-amber-accent/80 transition-colors cursor-pointer underline underline-offset-2"
+                    >Install</button>
+                {/if}
+                <button
+                    onclick={dismissInstall}
+                    class="text-stone-600 hover:text-stone-400 transition-colors cursor-pointer ml-1"
+                    aria-label="Dismiss"
+                >
+                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+        </div>
+    {/if}
 
     <!-- Navigation -->
     <nav class="border-b border-stone-800/80 bg-stone-950 sticky top-0 z-10">
