@@ -1,4 +1,10 @@
 <script lang="ts">
+	import { createWebHaptics } from 'web-haptics/svelte';
+	import { onDestroy } from 'svelte';
+
+	const haptic = createWebHaptics();
+	onDestroy(() => haptic.destroy());
+
 	let username = $state('');
 	let password = $state('');
 	let error = $state('');
@@ -9,6 +15,7 @@
 	async function handleLogin() {
 		error = '';
 		loading = true;
+		haptic.trigger('medium');
 		try {
 			const res = await fetch('/api/login', {
 				method: 'POST',
@@ -17,11 +24,14 @@
 			});
 			if (!res.ok) {
 				error = 'Invalid credentials';
+				haptic.trigger('error');
 				return;
 			}
+			haptic.trigger('success');
 			window.location.href = '/dashboard';
 		} catch {
 			error = 'Connection failed';
+			haptic.trigger('error');
 		} finally {
 			loading = false;
 		}
@@ -109,7 +119,7 @@
 							</svg>
 						{/if}
 					</div>
-					<input type="checkbox" bind:checked={remember} class="sr-only" />
+					<input type="checkbox" bind:checked={remember} onchange={() => haptic.trigger('light')} class="sr-only" />
 					<span class="text-[11px] text-stone-600 group-hover:text-stone-400 transition-colors duration-150">Remember me</span>
 				</label>
 			</div>

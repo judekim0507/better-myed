@@ -1,7 +1,11 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
+	import { createWebHaptics } from 'web-haptics/svelte';
 	import WhatIf from '$lib/WhatIf.svelte';
+
+	const haptic = createWebHaptics();
+	onDestroy(() => haptic.destroy());
 
 	interface Assignment {
 		name: string;
@@ -66,6 +70,7 @@
 
 	async function switchTab(t: Tab) {
 		if (tab === t) return;
+		haptic.trigger('selection');
 		tab = t;
 		if (t === 'attendance' && !attendance.length) {
 			tabLoading = true;
@@ -124,7 +129,7 @@
 			{/each}
 			{#if !loading && assignments.some((a) => a.score && a.score.includes('/'))}
 				<button
-					onclick={() => whatIfOpen = true}
+					onclick={() => { haptic.trigger('medium'); whatIfOpen = true; }}
 					class="ml-auto px-3 py-1.5 text-[11px] font-mono uppercase tracking-wider text-amber-accent hover:text-amber-accent/80 transition-colors duration-150 cursor-pointer"
 				>
 					What If?

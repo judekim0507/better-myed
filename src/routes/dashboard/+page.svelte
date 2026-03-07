@@ -1,5 +1,9 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onMount, onDestroy } from "svelte";
+    import { createWebHaptics } from "web-haptics/svelte";
+
+    const haptic = createWebHaptics();
+    onDestroy(() => haptic.destroy());
 
     interface ClassInfo {
         oid: string;
@@ -65,6 +69,7 @@
 
     async function loadTab(t: Tab) {
         if (tab === t) return;
+        haptic.trigger("selection");
         tab = t;
         tabLoading = true;
         try {
@@ -362,6 +367,7 @@
                     {#each classes as cls, i}
                         <a
                             href="/class/{cls.oid}?name={encodeURIComponent(cls.name)}"
+                            onclick={() => haptic.trigger("light")}
                             class="stagger-in grid grid-cols-[1fr_160px_80px_60px] gap-0 px-5 py-3.5 border-b border-stone-800/40 hover:bg-stone-900/50 transition-colors duration-100 group"
                             style="animation-delay: {160 + i * 35}ms"
                         >
@@ -410,6 +416,7 @@
                     {#each classes as cls, i}
                         <a
                             href="/class/{cls.oid}?name={encodeURIComponent(cls.name)}"
+                            onclick={() => haptic.trigger("light")}
                             class="stagger-in block bg-stone-950 px-4 py-3.5 active:bg-stone-900 transition-colors duration-100"
                             style="animation-delay: {160 + i * 35}ms"
                         >

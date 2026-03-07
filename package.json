@@ -27,6 +27,7 @@
 		"@number-flow/svelte": "^0.4.0",
 		"@vercel/analytics": "^1.6.1",
 		"cheerio": "^1.2.0",
-		"vaul-svelte": "^0.3.2"
+		"vaul-svelte": "^0.3.2",
+		"web-haptics": "^0.0.6"
 	}
 }

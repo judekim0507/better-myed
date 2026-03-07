@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { Drawer } from 'vaul-svelte';
+	import { createWebHaptics } from 'web-haptics/svelte';
+	import { onDestroy } from 'svelte';
 	import NumberFlow from '@number-flow/svelte';
+
+	const haptic = createWebHaptics();
+	onDestroy(() => haptic.destroy());
 
 	interface Assignment {
 		name: string;
@@ -42,6 +47,7 @@
 	});
 
 	function reset() {
+		haptic.trigger('light');
 		scores = scores.map((s) => ({ ...s, numerator: s.originalNumerator }));
 	}
 
@@ -74,10 +80,14 @@
 		return 'bg-terracotta';
 	}
 
-	function updateScore(index: number, value: string) {
+	function updateScore(index: number, value: string, fromSlider = false) {
 		const num = parseFloat(value);
 		if (!isNaN(num) && num >= 0) {
-			scores[index].numerator = Math.min(num, scores[index].denominator * 2);
+			const clamped = Math.min(num, scores[index].denominator * 2);
+			if (fromSlider && clamped !== scores[index].numerator) {
+				haptic.trigger('selection');
+			}
+			scores[index].numerator = clamped;
 		}
 	}
 </script>
@@ -151,7 +161,7 @@
 									</div>
 								</div>
 								<div class="flex items-center gap-3">
-									<input type="range" min="0" max={score.denominator} step="0.5" value={score.numerator} oninput={(e) => updateScore(i, e.currentTarget.value)} class="whatif-slider flex-1" />
+									<input type="range" min="0" max={score.denominator} step="0.5" value={score.numerator} oninput={(e) => updateScore(i, e.currentTarget.value, true)} class="whatif-slider flex-1" />
 									<span class="text-[11px] font-mono w-9 text-right tabular-nums {pctColor(score.denominator > 0 ? Math.round((score.numerator / score.denominator) * 100) : 0)} {score.numerator !== score.originalNumerator ? 'font-600' : 'opacity-50'}">{score.denominator > 0 ? Math.round((score.numerator / score.denominator) * 100) : 0}%</span>
 								</div>
 								{#if score.numerator !== score.originalNumerator}
