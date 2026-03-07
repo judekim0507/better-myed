@@ -102,6 +102,16 @@ html, body {
 	animation: fadeIn 0.2s ease-out;
 }
 
+/* tab content fade */
+@keyframes tabFadeIn {
+	from { opacity: 0; transform: translateY(4px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+.tab-enter {
+	animation: tabFadeIn 0.2s ease-out;
+}
+
 /* skeleton shimmer */
 @keyframes shimmer {
 	0% { opacity: 0.4; }

@@ -476,10 +476,29 @@
                 </div>
             </section>
         {:else if tabLoading}
-            <div class="py-24">
-                <div class="w-32 h-[2px] mx-auto load-bar"></div>
-            </div>
-        {:else if tab === "home"}
+            <section class="py-6 md:py-8">
+                <div class="mb-6 flex items-center gap-3">
+                    <div class="h-2 w-24 bg-stone-900 skeleton"></div>
+                    <div class="h-px flex-1 bg-stone-800/60"></div>
+                </div>
+                <div class="grid gap-[1px] bg-stone-800/50">
+                    {#each Array(5) as _, i}
+                        <div class="bg-stone-950 px-4 md:px-5 py-4">
+                            <div class="flex items-center justify-between gap-4">
+                                <div class="flex-1 space-y-2">
+                                    <div class="h-3 w-3/4 bg-stone-900 skeleton" style="animation-delay: {i * 60}ms"></div>
+                                    <div class="h-2 w-1/2 bg-stone-900/60 skeleton" style="animation-delay: {i * 60 + 30}ms"></div>
+                                </div>
+                                <div class="h-5 w-12 bg-stone-900 skeleton" style="animation-delay: {i * 60 + 50}ms"></div>
+                            </div>
+                        </div>
+                    {/each}
+                </div>
+            </section>
+        {:else}
+        {#key tab}
+        <div class="tab-enter">
+        {#if tab === "home"}
             {@const gradedClasses = classes.filter(
                 (c) => c.grade && !isNaN(parseFloat(c.grade)),
             )}
@@ -1732,6 +1751,9 @@
                     </div>
                 </div>
             </section>
+        {/if}
+        </div>
+        {/key}
         {/if}
     </main>
 </div>
