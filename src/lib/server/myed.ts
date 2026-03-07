@@ -249,27 +249,31 @@ export interface AttendanceRecord {
 
 export async function getAttendance(session: MyEdSession): Promise<AttendanceRecord[]> {
 	const r = await fetch(
-		`${BASE_URL}/contextList.do?navkey=academics.classes.list.pat`,
+		`${BASE_URL}/studentAttendanceList.do?navkey=myInfo.att.list`,
 		{ headers: { cookie: session.cookies }, redirect: 'follow' }
 	);
 	const html = await r.text();
+
+	// Verify we got the attendance page, not a redirect/login
+	if (!html.includes('studentAttendanceList') && !html.includes('attCodeView')) {
+		throw new Error('Did not receive attendance page');
+	}
+
 	const $ = cheerio.load(html);
 	const records: AttendanceRecord[] = [];
 
-	$('tr')
-		.filter((_, el) => ($(el).attr('class') ?? '').includes('listCell'))
-		.each((_, row) => {
-			const cells = $(row).find('td');
-			const text = cells.map((__, cell) => $(cell).text().trim()).get();
-			// [0]=checkbox, [1]=date, [2]=code, [3..]=reason/other
-			if (text.length >= 3) {
-				records.push({
-					date: text[1] || '',
-					code: text[2] || '',
-					reason: text.slice(3).filter(Boolean).join(' '),
-				});
-			}
-		});
+	$('tr.listCell, tr[class*="listCell"]').each((_, row) => {
+		const cells = $(row).find('td');
+		const text = cells.map((__, cell) => $(cell).text().trim()).get();
+		// [0]=checkbox, [1]=date, [2]=code, [3..]=reason/other
+		if (text.length >= 3) {
+			records.push({
+				date: text[1] || '',
+				code: text[2] || '',
+				reason: text.slice(3).filter(Boolean).join(' '),
+			});
+		}
+	});
 
 	return records;
 }

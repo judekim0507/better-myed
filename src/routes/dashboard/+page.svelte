@@ -25,6 +25,7 @@
     type Tab =
         | "home"
         | "transcript"
+        | "attendance"
         | "info"
         | "groups"
         | "calendar"
@@ -35,6 +36,7 @@
     const tabs: { key: Tab; label: string }[] = [
         { key: "home", label: "Overview" },
         { key: "transcript", label: "Transcript" },
+        { key: "attendance", label: "Attendance" },
         { key: "info", label: "Profile" },
         { key: "groups", label: "Groups" },
         { key: "calendar", label: "Calendar" },
@@ -100,6 +102,13 @@
         requirements: GradRequirement[];
     }
     let graduation = $state<GradSummary | null>(null);
+
+    interface AttendanceRecord {
+        date: string;
+        code: string;
+        reason: string;
+    }
+    let attendance = $state<AttendanceRecord[] | null>(null);
 
     interface Report {
         name: string;
@@ -285,6 +294,9 @@
                     }));
                 }
                 await Promise.all(fetches);
+            } else if (t === "attendance" && attendance === null) {
+                const res = await fetch("/api/attendance");
+                if (res.ok) attendance = await res.json();
             } else if (t === "reports" && reports === null) {
                 const res = await fetch("/api/reports");
                 if (res.ok) reports = await res.json();
@@ -1517,6 +1529,127 @@
                     </div>
                 {/if}
             </section>
+        {:else if tab === "attendance"}
+            <section class="py-8 md:py-10">
+                {#if attendance && attendance.length > 0}
+                    {@const total = attendance.length}
+                    {@const codeMap = attendance.reduce((acc, r) => {
+                        const c = r.code || 'Unknown';
+                        acc[c] = (acc[c] || 0) + 1;
+                        return acc;
+                    }, {} as Record<string, number>)}
+                    {@const codes = Object.entries(codeMap).sort((a, b) => b[1] - a[1])}
+
+                    <!-- Summary strip -->
+                    <div class="stagger-in mb-8">
+                        <div class="flex items-baseline gap-3 mb-6">
+                            <span class="font-brand font-800 text-3xl md:text-4xl tracking-tight text-stone-100">
+                                {total}
+                            </span>
+                            <span class="text-stone-500 text-sm">
+                                record{total !== 1 ? 's' : ''} on file
+                            </span>
+                        </div>
+
+                        <!-- Code breakdown pills -->
+                        <div class="flex flex-wrap gap-2">
+                            {#each codes as [code, count], i}
+                                {@const pct = Math.round((count / total) * 100)}
+                                {@const isExcused = code.includes('E')}
+                                {@const isLate = code.startsWith('L')}
+                                <div
+                                    class="stagger-in flex items-center gap-2 px-3 py-1.5 border border-stone-800 bg-stone-900/50"
+                                    style="animation-delay: {i * 40}ms"
+                                >
+                                    <span class="w-2 h-2 shrink-0 {
+                                        isLate ? 'bg-ochre' :
+                                        isExcused ? 'bg-sage' :
+                                        'bg-terracotta'
+                                    }"></span>
+                                    <span class="text-[11px] font-mono text-stone-300 font-600">{code}</span>
+                                    <span class="text-[10px] font-mono text-stone-600">{count} · {pct}%</span>
+                                </div>
+                            {/each}
+                        </div>
+                    </div>
+
+                    <!-- Timeline -->
+                    <div class="relative">
+                        <!-- Vertical line -->
+                        <div class="absolute left-[7px] top-2 bottom-2 w-px bg-stone-800/60 hidden md:block"></div>
+
+                        <div class="grid gap-[1px] md:gap-0 bg-stone-800/50 md:bg-transparent">
+                            {#each attendance as record, i}
+                                {@const dateParts = record.date.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)}
+                                {@const dateObj = dateParts ? new Date(+dateParts[3], +dateParts[1] - 1, +dateParts[2]) : new Date(record.date)}
+                                {@const isLate = record.code.startsWith('L')}
+                                {@const isExcused = !isLate && record.code.includes('E')}
+                                {@const isUnexcused = !isLate && !isExcused}
+                                {@const dotColor = isLate ? 'bg-ochre' : isExcused ? 'bg-sage' : 'bg-terracotta'}
+                                {@const pillStyle = isLate
+                                    ? 'text-ochre border-ochre/20 bg-ochre/5'
+                                    : isExcused
+                                        ? 'text-sage border-sage/20 bg-sage/5'
+                                        : 'text-terracotta border-terracotta/20 bg-terracotta/5'}
+                                <div
+                                    class="stagger-in bg-stone-950 md:bg-transparent md:pl-8 md:ml-[7px] md:border-l md:border-stone-800/60 md:py-3 relative"
+                                    style="animation-delay: {i * 30}ms"
+                                >
+                                    <!-- Timeline dot (desktop) -->
+                                    <div class="absolute -left-[5.5px] top-[18px] w-[11px] h-[11px] border-2 border-stone-950 hidden md:block {dotColor}" style="border-radius: 50% !important;"></div>
+
+                                    <div class="px-4 md:px-5 py-3.5 md:py-0 flex items-start gap-4">
+                                        <!-- Date -->
+                                        <div class="shrink-0 w-24 md:w-28">
+                                            <span class="text-[11px] font-mono text-stone-500 block">
+                                                {!isNaN(dateObj.getTime())
+                                                    ? dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+                                                    : record.date}
+                                            </span>
+                                        </div>
+
+                                        <!-- Code pill -->
+                                        <div class="shrink-0">
+                                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-mono font-600 border {pillStyle}">
+                                                <!-- Mobile dot -->
+                                                <span class="w-1.5 h-1.5 md:hidden shrink-0 {dotColor}" style="border-radius: 50% !important;"></span>
+                                                {record.code}
+                                            </span>
+                                        </div>
+
+                                        <!-- Reason -->
+                                        {#if record.reason}
+                                            <span class="text-sm text-stone-400 leading-snug pt-px">
+                                                {record.reason}
+                                            </span>
+                                        {/if}
+                                    </div>
+                                </div>
+                            {/each}
+                        </div>
+                    </div>
+                {:else if attendance && attendance.length === 0}
+                    <div class="py-24 text-center">
+                        <div class="stagger-in">
+                            <span class="block text-3xl mb-4 text-sage">&#10003;</span>
+                            <p class="text-stone-400 font-mono text-sm mb-1">Perfect attendance</p>
+                            <p class="text-stone-600 text-xs">No absences or lates on record</p>
+                        </div>
+                    </div>
+                {:else}
+                    <!-- Skeleton -->
+                    <div class="space-y-3 py-4">
+                        {#each Array(6) as _, i}
+                            <div class="flex items-center gap-4 px-4 py-3" style="animation-delay: {i * 60}ms">
+                                <div class="h-4 w-24 bg-stone-900 skeleton"></div>
+                                <div class="h-5 w-10 bg-stone-900 skeleton" style="animation-delay: {i * 60 + 30}ms"></div>
+                                <div class="h-4 w-40 bg-stone-900 skeleton" style="animation-delay: {i * 60 + 60}ms"></div>
+                            </div>
+                        {/each}
+                    </div>
+                {/if}
+            </section>
+
         {:else if tab === "locker"}
             <section class="py-8">
                 <div class="grid gap-[1px] bg-stone-800/50">
