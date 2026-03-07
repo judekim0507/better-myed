@@ -507,6 +507,133 @@ export async function getReportPdf(session: MyEdSession, reportOid: string): Pro
 }
 
 
+export interface TranscriptEntry {
+	year: string;
+	grade: string;
+	course: string;
+	finalGrade: string;
+	credit: string;
+}
+
+export async function getTranscript(session: MyEdSession): Promise<TranscriptEntry[]> {
+	const r = await fetch(
+		`${BASE_URL}/transcriptList.do?navkey=myInfo.trn.list`,
+		{ headers: { cookie: session.cookies }, redirect: 'follow' }
+	);
+	const html = await r.text();
+	const $ = cheerio.load(html);
+	const entries: TranscriptEntry[] = [];
+
+	$('tr')
+		.filter((_, el) => ($(el).attr('class') ?? '').includes('listCell'))
+		.each((_, row) => {
+			const cells = $(row).find('td');
+			const text = cells.map((__, cell) => $(cell).text().trim()).get();
+			// [0]=checkbox, [1]=year, [2]=grade level, [3]=course, [4]=final grade, [5]=credit
+			if (text.length >= 6) {
+				entries.push({
+					year: text[1],
+					grade: text[2],
+					course: text[3],
+					finalGrade: text[4],
+					credit: text[5],
+				});
+			}
+		});
+
+	return entries;
+}
+
+export interface GradRequirement {
+	code: string;
+	description: string;
+	required: string;
+	completed: string;
+	status: string;
+}
+
+export interface GradSummary {
+	program: string;
+	requiredTotal: string;
+	completedTotal: string;
+	requirements: GradRequirement[];
+}
+
+export async function getGraduationSummary(session: MyEdSession): Promise<GradSummary> {
+	const r = await fetch(
+		`${BASE_URL}/graduationSummary.do?includeProjection=false&navkey=myInfo.gradSummary.graduation`,
+		{ headers: { cookie: session.cookies }, redirect: 'follow' }
+	);
+	const html = await r.text();
+	const $ = cheerio.load(html);
+
+	// Program name from the select dropdown, cleaned up
+	const rawProgram = $('#selectedProgramStudiesOid option[selected]').text().trim() || '';
+	// "2023 - EN English Grad Program" → "English Graduation Program"
+	const program = rawProgram
+		.replace(/^\d{4}\s*-\s*/, '')       // remove year prefix
+		.replace(/^[A-Z]{2}\s+/, '')        // remove 2-letter code prefix
+		.replace(/\bGrad\b/gi, 'Graduation');
+
+	// Totals from the header area
+	const headerText = html.match(/Required unit[^:]*:\s*([\d.]+)/)?.[1] ?? '';
+	const completedText = html.match(/Unit completed[^:]*:\s*([\d.]+)/)?.[1] ?? '';
+
+	// Parse top-level requirement rows from the requirementSummaryTable
+	const requirements: GradRequirement[] = [];
+	$('table.requirementSummaryTable tr.listCell').each((_, row) => {
+		const $row = $(row);
+		// Skip totalRowBorder rows
+		if (($row.attr('class') ?? '').includes('totalRowBorder')) return;
+
+		const cells = $row.children('td, th');
+		// First meaningful td after expand icon contains the code
+		const codeTd = cells.filter((__, cell) => {
+			const text = $(cell).text().trim();
+			return !!(text && !$(cell).find('img').length && $(cell).attr('width') !== '15' && $(cell).attr('width') !== '1');
+		});
+
+		if (codeTd.length < 2) return;
+
+		const codeText = codeTd.eq(0).text().trim().split('\n')[0].trim();
+		// Description from anchor in the descriptionCell
+		const descAnchor = $row.find('.descriptionCell a').first();
+		const description = descAnchor.text().trim() || codeTd.eq(1).text().trim();
+
+		// Required, completed, and status are in later tds
+		const allTdTexts = cells.map((__, cell) => $(cell).text().trim()).get();
+		// Find numeric values for required and completed
+		let required = '';
+		let completed = '';
+		let status = '';
+
+		// Look for the pattern: number cells followed by "X% completed"
+		for (let i = 0; i < allTdTexts.length; i++) {
+			const t = allTdTexts[i];
+			if (/^\d+(\.\d+)?$/.test(t) && !required) {
+				required = t;
+			} else if (/^\d+(\.\d+)?$/.test(t) && required && !completed) {
+				completed = t;
+			}
+			const pctMatch = t.match(/(\d+)\s*%\s*completed/);
+			if (pctMatch) {
+				status = pctMatch[1] + '%';
+			}
+		}
+
+		if (codeText && description) {
+			requirements.push({ code: codeText, description, required, completed, status });
+		}
+	});
+
+	return {
+		program,
+		requiredTotal: headerText,
+		completedTotal: completedText,
+		requirements,
+	};
+}
+
 export async function getLocker(session: MyEdSession): Promise<string[][]> {
 	const r = await fetch(
 		`${BASE_URL}/studentLockerList.do?navkey=locker.files.list`,
