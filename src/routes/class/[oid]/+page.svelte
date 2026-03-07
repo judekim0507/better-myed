@@ -105,25 +105,37 @@
 		return 'bg-terracotta/10';
 	}
 
-	onMount(async () => {
+	let abortController: AbortController | null = null;
+
+	onMount(() => {
+		abortController = new AbortController();
+		const signal = abortController.signal;
 		const url = new URL(window.location.href);
 		className = url.searchParams.get('name') || '';
 
 		const oid = $page.params.oid;
-		const assignRes = await fetch(`/api/classes/${oid}/assignments`);
-		if (!assignRes.ok) {
-			error = 'Failed to load assignments';
-			loading = false;
-			return;
-		}
-		assignments = await assignRes.json();
-		loading = false;
 
-		// Fetch detail after assignments (class must be selected first)
-		const detailRes = await fetch(`/api/classes/${oid}/detail`);
-		if (detailRes.ok) {
-			classDetail = await detailRes.json();
-		}
+		(async () => {
+			const assignRes = await fetch(`/api/classes/${oid}/assignments`, { signal });
+			if (!assignRes.ok) {
+				error = 'Failed to load assignments';
+				loading = false;
+				return;
+			}
+			assignments = await assignRes.json();
+			loading = false;
+
+			const detailRes = await fetch(`/api/classes/${oid}/detail`, { signal });
+			if (detailRes.ok) {
+				classDetail = await detailRes.json();
+			}
+		})().catch((e) => {
+			if (e.name !== 'AbortError') throw e;
+		});
+
+		return () => {
+			abortController?.abort();
+		};
 	});
 
 	async function switchTab(t: Tab) {
