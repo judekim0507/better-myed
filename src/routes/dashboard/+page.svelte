@@ -512,7 +512,7 @@
                 <div class="hidden md:block border border-stone-800">
                     <!-- Header row -->
                     <div
-                        class="grid grid-cols-[1fr_160px_80px_60px] gap-0 px-5 py-2.5 bg-stone-900 border-b border-stone-800 text-[10px] font-mono text-stone-500 uppercase tracking-wider"
+                        class="grid grid-cols-[1fr_160px_80px_80px] gap-0 px-5 py-2.5 bg-stone-900 border-b border-stone-800 text-[10px] font-mono text-stone-500 uppercase tracking-wider"
                     >
                         <span>Course</span>
                         <span>Instructor</span>
@@ -523,7 +523,7 @@
                         <a
                             href="/class/{cls.oid}?name={encodeURIComponent(cls.name)}"
                             onclick={() => haptic.trigger("light")}
-                            class="stagger-in grid grid-cols-[1fr_160px_80px_60px] gap-0 px-5 py-3.5 border-b border-stone-800/40 hover:bg-stone-900/50 transition-colors duration-100 group"
+                            class="stagger-in grid grid-cols-[1fr_160px_80px_80px] gap-0 px-5 py-3.5 border-b border-stone-800/40 hover:bg-stone-900/50 transition-colors duration-100 group"
                             style="animation-delay: {160 + i * 35}ms"
                         >
                             <span class="flex items-center gap-3 min-w-0">
@@ -547,7 +547,7 @@
                             <span class="text-right self-center">
                                 {#if cls.grade}
                                     <span
-                                        class="inline-block px-2 py-0.5 font-mono text-xs font-600 {gradeColor(
+                                        class="inline-block whitespace-nowrap px-2 py-0.5 font-mono text-xs font-600 {gradeColor(
                                             cls.grade,
                                         )} {gradeBg(
                                             cls.grade,
