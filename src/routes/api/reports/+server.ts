@@ -11,24 +11,10 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 	const oid = url.searchParams.get('oid');
 	if (oid) {
 		try {
-			const debug = url.searchParams.get('debug') === '1';
 			const r = await getReportPdf(session, oid);
 			const buffer = await r.arrayBuffer();
 			const contentType = r.headers.get('content-type') ?? '';
 			const disposition = r.headers.get('content-disposition');
-
-			if (debug) {
-				return json({
-					status: r.status,
-					contentType,
-					disposition,
-					bodySize: buffer.byteLength,
-					headers: Object.fromEntries(r.headers.entries()),
-					bodyPreview: new TextDecoder().decode(buffer.slice(0, 1000)),
-					requestedOid: oid,
-					finalUrl: r.url,
-				});
-			}
 
 			if (buffer.byteLength === 0 || contentType.includes('text/html')) {
 				return json({ error: 'Download failed — empty or HTML response' }, { status: 502 });
