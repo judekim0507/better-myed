@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
     import { createWebHaptics } from "web-haptics/svelte";
+    import NumberFlow from "@number-flow/svelte";
 
     const haptic = createWebHaptics();
     onDestroy(() => haptic.destroy());
@@ -57,7 +58,79 @@
     let locker = $state<string[][]>([]);
     let tabLoading = $state(false);
 
+    // --- Streak logic ---
+    let streak = $state(0);
+    let streakReady = $state(false);
+    let streakBumped = $state(false);
+    let todayDow = $state(0); // 0=Sun, 1=Mon, ...
+    let streakDays = $state<boolean[]>([]); // last 7 days, Mon–Sun
+
+    function getDateStr(d: Date): string {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function computeStreak() {
+        const now = new Date();
+        const todayStr = getDateStr(now);
+        todayDow = now.getDay();
+
+        const stored = localStorage.getItem('streak_data');
+        let data: { lastDate: string; count: number; history: string[] } = stored
+            ? JSON.parse(stored)
+            : { lastDate: '', count: 0, history: [] };
+
+        if (data.lastDate === todayStr) {
+            // Already visited today
+            streak = data.count;
+        } else {
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = getDateStr(yesterday);
+
+            if (data.lastDate === yesterdayStr) {
+                // Consecutive day
+                data.count += 1;
+            } else {
+                // Streak broken — restart at 1
+                data.count = 1;
+                data.history = [];
+            }
+            data.lastDate = todayStr;
+            if (!data.history.includes(todayStr)) {
+                data.history.push(todayStr);
+            }
+            // Keep only last 30 days of history
+            data.history = data.history.slice(-30);
+            localStorage.setItem('streak_data', JSON.stringify(data));
+            streakBumped = true;
+            // Animate: start from previous value, then bump
+            streak = data.count - 1;
+            setTimeout(() => {
+                streak = data.count;
+                haptic.trigger("success");
+            }, 600);
+        }
+
+        // Build week view (Mon–Sun)
+        const weekDays: boolean[] = [];
+        // Find the Monday of the current week
+        const monday = new Date(now);
+        const dayOfWeek = now.getDay();
+        const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        monday.setDate(now.getDate() + diff);
+
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(monday);
+            d.setDate(monday.getDate() + i);
+            weekDays.push(data.history.includes(getDateStr(d)));
+        }
+        streakDays = weekDays;
+        streakReady = true;
+    }
+
     onMount(async () => {
+        computeStreak();
+
         const res = await fetch("/api/classes");
         if (!res.ok) {
             window.location.href = "/";
@@ -250,27 +323,96 @@
             <section
                 class="pt-10 pb-8 md:pt-14 md:pb-10 border-b border-stone-800/50"
             >
-                <div class="stagger-in">
-                    <p
-                        class="text-[11px] font-mono text-stone-500 uppercase tracking-wider mb-3"
-                    >
-                        {getTimeGreeting()}
-                    </p>
-                    <h1
-                        class="font-display font-700 text-2xl md:text-3xl text-stone-50 tracking-tight mb-2"
-                    >
-                        Your overview
-                    </h1>
-                    <p class="text-stone-500 text-sm">
-                        {classes.length} class{classes.length !== 1 ? "es" : ""} this
-                        term
-                        {#if avgGrade !== null}
-                            <span class="text-stone-700 mx-1">·</span>
-                            <span class={gradeColor(String(avgGrade))}>
-                                {avgGrade}% average
-                            </span>
-                        {/if}
-                    </p>
+                <div class="flex items-start justify-between gap-6">
+                    <div class="stagger-in">
+                        <p
+                            class="text-[11px] font-mono text-stone-500 uppercase tracking-wider mb-3"
+                        >
+                            {getTimeGreeting()}
+                        </p>
+                        <h1
+                            class="font-display font-700 text-2xl md:text-3xl text-stone-50 tracking-tight mb-2"
+                        >
+                            Your overview
+                        </h1>
+                        <p class="text-stone-500 text-sm">
+                            {classes.length} class{classes.length !== 1 ? "es" : ""} this
+                            term
+                            {#if avgGrade !== null}
+                                <span class="text-stone-700 mx-1">·</span>
+                                <span class={gradeColor(String(avgGrade))}>
+                                    {avgGrade}% average
+                                </span>
+                            {/if}
+                        </p>
+                    </div>
+
+                    <!-- Streak -->
+                    {#if streakReady}
+                        <div class="stagger-in shrink-0" style="animation-delay: 120ms">
+                            <div class="streak-container relative">
+                                <!-- Ambient glow -->
+                                <div class="streak-glow" class:streak-glow-hot={streak >= 3}></div>
+
+                                <div class="relative flex flex-col items-end gap-3">
+                                    <!-- Fire + Number -->
+                                    <div class="flex items-center gap-2">
+                                        <!-- Animated fire -->
+                                        <div class="streak-flame-wrap" class:streak-flame-lit={streak >= 1}>
+                                            <svg class="streak-flame" width="30" height="38" viewBox="0 0 30 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <defs>
+                                                    <linearGradient id="flameOuter" x1="15" y1="2" x2="15" y2="36" gradientUnits="userSpaceOnUse">
+                                                        <stop offset="0" stop-color="#FF9600"/>
+                                                        <stop offset="0.55" stop-color="#FF6B00"/>
+                                                        <stop offset="1" stop-color="#E83A00"/>
+                                                    </linearGradient>
+                                                    <linearGradient id="flameInner" x1="15" y1="14" x2="15" y2="33" gradientUnits="userSpaceOnUse">
+                                                        <stop offset="0" stop-color="#FFCC00"/>
+                                                        <stop offset="0.5" stop-color="#FFAA00"/>
+                                                        <stop offset="1" stop-color="#FF7A00"/>
+                                                    </linearGradient>
+                                                    <linearGradient id="flameCore" x1="15" y1="20" x2="15" y2="31" gradientUnits="userSpaceOnUse">
+                                                        <stop offset="0" stop-color="#FFF2C4"/>
+                                                        <stop offset="1" stop-color="#FFD644"/>
+                                                    </linearGradient>
+                                                </defs>
+                                                <!-- Outer body -->
+                                                <path class="flame-outer" d="M15 2C15 2 8.5 9 6 15.5C3.5 22 4.2 27 6.5 30.5C9 34.3 12 36 15 36C18 36 21 34.3 23.5 30.5C25.8 27 26.5 22 24 15.5C21.5 9 15 2 15 2Z" fill="url(#flameOuter)" />
+                                                <!-- Inner body -->
+                                                <path class="flame-inner" d="M15 14C15 14 10.5 19.5 10 24C9.6 27.5 11.5 31 15 33C18.5 31 20.4 27.5 20 24C19.5 19.5 15 14 15 14Z" fill="url(#flameInner)" />
+                                                <!-- Hot core -->
+                                                <path class="flame-core" d="M15 21C15 21 12.5 24.5 12.5 26.5C12.5 28.5 13.6 30 15 30C16.4 30 17.5 28.5 17.5 26.5C17.5 24.5 15 21 15 21Z" fill="url(#flameCore)" />
+                                            </svg>
+                                        </div>
+
+                                        <div class="flex items-baseline gap-1">
+                                            <span class="streak-number {streak >= 7 ? 'streak-fire' : streak >= 3 ? 'text-[#FF9600]' : 'text-stone-300'}">
+                                                <NumberFlow value={streak} />
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Week dots (Mon–Sun) -->
+                                    <div class="flex items-center gap-[6px]">
+                                        {#each ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as label, i}
+                                            {@const isActive = streakDays[i]}
+                                            {@const isToday = i === (todayDow === 0 ? 6 : todayDow - 1)}
+                                            <div class="flex flex-col items-center gap-1">
+                                                <div
+                                                    class="streak-dot w-[7px] h-[7px] transition-all duration-500
+                                                        {isActive ? 'streak-dot-active' : 'bg-stone-800'}
+                                                        {isToday && !isActive ? 'ring-1 ring-stone-700 ring-offset-1 ring-offset-stone-950' : ''}
+                                                        {isToday && isActive ? 'ring-1 ring-[#FF9600]/40 ring-offset-1 ring-offset-stone-950' : ''}"
+                                                    style="transition-delay: {i * 70}ms; {isActive ? 'background: #FF9600;' : ''}"
+                                                ></div>
+                                                <span class="text-[7px] font-mono {isToday ? 'text-stone-400' : 'text-stone-700'}">{label}</span>
+                                            </div>
+                                        {/each}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {/if}
                 </div>
             </section>
 
@@ -814,3 +956,112 @@
         {/if}
     </main>
 </div>
+
+<style>
+    /* ---- Streak ---- */
+
+    .streak-number {
+        font-family: var(--font-mono);
+        font-size: 2.25rem;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.05em;
+    }
+
+    /* Gradient text for 7+ */
+    .streak-fire {
+        background: linear-gradient(
+            180deg,
+            #FFCC00 0%,
+            #FF8C00 50%,
+            #FF4400 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    /* Ambient glow */
+    .streak-glow {
+        position: absolute;
+        top: 45%;
+        left: 50%;
+        transform: translate(-50%, -55%);
+        width: 100px;
+        height: 100px;
+        background: radial-gradient(circle, rgba(255, 150, 0, 0.03) 0%, transparent 70%);
+        pointer-events: none;
+        transition: all 0.6s ease;
+    }
+    .streak-glow-hot {
+        width: 140px;
+        height: 140px;
+        background: radial-gradient(circle, rgba(255, 150, 0, 0.1) 0%, rgba(255, 68, 0, 0.04) 50%, transparent 70%);
+        animation: glowPulse 3s ease-in-out infinite;
+    }
+
+    @keyframes glowPulse {
+        0%, 100% { opacity: 0.6; transform: translate(-50%, -55%) scale(1); }
+        50% { opacity: 1; transform: translate(-50%, -55%) scale(1.1); }
+    }
+
+    /* ---- Flame SVG ---- */
+
+    .streak-flame-wrap {
+        opacity: 0.12;
+        filter: saturate(0);
+        transition: opacity 0.5s ease, filter 0.5s ease;
+    }
+    .streak-flame-lit {
+        opacity: 1;
+        filter: saturate(1);
+    }
+
+    .streak-flame {
+        filter: drop-shadow(0 2px 10px rgba(255, 107, 0, 0.35));
+    }
+    .streak-flame-lit .streak-flame {
+        animation: flameFlicker 2.5s ease-in-out infinite;
+    }
+
+    @keyframes flameFlicker {
+        0%, 100% { transform: scaleX(1) scaleY(1) rotate(0deg); }
+        20% { transform: scaleX(0.97) scaleY(1.02) rotate(-0.5deg); }
+        40% { transform: scaleX(1.01) scaleY(0.98) rotate(0.5deg); }
+        60% { transform: scaleX(0.98) scaleY(1.015) rotate(-0.3deg); }
+        80% { transform: scaleX(1.01) scaleY(0.99) rotate(0.3deg); }
+    }
+
+    /* Flame layers breathe independently */
+    .flame-outer {
+        animation: flameBreathOuter 2s ease-in-out infinite alternate;
+        transform-origin: center bottom;
+    }
+    @keyframes flameBreathOuter {
+        0% { opacity: 0.92; }
+        100% { opacity: 1; }
+    }
+
+    .flame-inner {
+        animation: flameBreathInner 1.4s ease-in-out infinite alternate;
+        transform-origin: center bottom;
+    }
+    @keyframes flameBreathInner {
+        0% { opacity: 0.88; transform: scaleY(1); }
+        100% { opacity: 1; transform: scaleY(1.03); }
+    }
+
+    .flame-core {
+        animation: flameCoreGlow 0.9s ease-in-out infinite alternate;
+        transform-origin: center bottom;
+    }
+    @keyframes flameCoreGlow {
+        0% { opacity: 0.85; }
+        100% { opacity: 1; }
+    }
+
+    /* Dot bloom */
+    .streak-dot-active {
+        box-shadow: 0 0 5px rgba(255, 150, 0, 0.3);
+    }
+</style>
