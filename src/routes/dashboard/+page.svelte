@@ -5,7 +5,13 @@
     import NumberFlow from "@number-flow/svelte";
 
     const haptic = createWebHaptics();
-    onDestroy(() => haptic.destroy());
+    onDestroy(() => {
+        haptic.destroy();
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('online', onOnline);
+            window.removeEventListener('offline', onOffline);
+        }
+    });
 
     interface ClassInfo {
         oid: string;
@@ -177,6 +183,12 @@
         streakReady = true;
     }
 
+    // --- Offline detection ---
+    let offline = $state(false);
+
+    function onOnline() { offline = false; }
+    function onOffline() { offline = true; }
+
     // --- PWA install prompt ---
     let deferredPrompt = $state<any>(null);
     let showInstallBanner = $state(false);
@@ -201,6 +213,11 @@
 
     onMount(async () => {
         computeStreak();
+
+        // Offline detection
+        offline = !navigator.onLine;
+        window.addEventListener('online', onOnline);
+        window.addEventListener('offline', onOffline);
 
         // PWA: check if already installed or dismissed recently
         const isStandalone = window.matchMedia("(display-mode: standalone)").matches
@@ -351,6 +368,16 @@
             </button>
         </div>
     </header>
+
+    <!-- Offline Banner -->
+    {#if offline}
+        <div class="bg-terracotta/10 px-4 md:px-6 py-1.5">
+            <div class="max-w-6xl mx-auto flex items-center justify-center gap-2 text-[11px] font-mono">
+                <span class="w-1.5 h-1.5 bg-terracotta shrink-0 animate-pulse" style="border-radius: 50% !important;"></span>
+                <span class="text-terracotta">You're offline — showing cached data</span>
+            </div>
+        </div>
+    {/if}
 
     <!-- PWA Install Banner — thin top strip -->
     {#if showInstallBanner}

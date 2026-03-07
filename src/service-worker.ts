@@ -8,6 +8,7 @@ import { build, files, version } from '$service-worker';
 const sw = self as unknown as ServiceWorkerGlobalScope;
 
 const CACHE = `cache-${version}`;
+const API_CACHE = `api-${version}`;
 const ASSETS = [...build, ...files];
 
 // Install: cache all static assets
@@ -21,19 +22,55 @@ sw.addEventListener('install', (event) => {
 sw.addEventListener('activate', (event) => {
 	event.waitUntil(
 		caches.keys().then((keys) =>
-			Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))
+			Promise.all(keys.filter((key) => key !== CACHE && key !== API_CACHE).map((key) => caches.delete(key)))
 		).then(() => sw.clients.claim())
 	);
 });
 
-// Fetch: serve cached assets, network-first for API/pages
+// Fetch: serve cached assets, stale-while-revalidate for API, network-first for pages
 sw.addEventListener('fetch', (event) => {
 	if (event.request.method !== 'GET') return;
 
 	const url = new URL(event.request.url);
 
-	// Skip API routes — always go to network
-	if (url.pathname.startsWith('/api/')) return;
+	// API routes: stale-while-revalidate
+	if (url.pathname.startsWith('/api/')) {
+		// Skip login/logout — never cache auth
+		if (url.pathname.startsWith('/api/login') || url.pathname.startsWith('/api/logout')) return;
+		// Skip report PDF downloads
+		if (url.pathname.startsWith('/api/reports') && url.searchParams.has('oid')) return;
+
+		event.respondWith(
+			(async () => {
+				const cache = await caches.open(API_CACHE);
+				const cached = await cache.match(event.request);
+
+				const networkFetch = fetch(event.request).then((response) => {
+					if (response.ok) {
+						cache.put(event.request, response.clone());
+					}
+					return response;
+				}).catch(() => null);
+
+				// If we have a cached response, return it immediately
+				// and update in background
+				if (cached) {
+					networkFetch; // fire and forget
+					return cached;
+				}
+
+				// No cache — must wait for network
+				const response = await networkFetch;
+				if (response) return response;
+
+				return new Response(JSON.stringify({ error: 'Offline' }), {
+					status: 503,
+					headers: { 'Content-Type': 'application/json' }
+				});
+			})()
+		);
+		return;
+	}
 
 	event.respondWith(
 		(async () => {
@@ -45,19 +82,25 @@ sw.addEventListener('fetch', (event) => {
 				if (cached) return cached;
 			}
 
-			// Network first for everything else
+			// Network first for pages
 			try {
 				const response = await fetch(event.request);
-				// Only cache static pages (login, not dashboard/class)
-				const noCache = ['/dashboard', '/class/'];
-				const shouldCache = response.ok && response.type === 'basic' && !noCache.some((p) => url.pathname.startsWith(p));
-				if (shouldCache) {
+				if (response.ok && response.type === 'basic') {
 					cache.put(event.request, response.clone());
 				}
 				return response;
 			} catch {
 				const cached = await cache.match(event.request);
 				if (cached) return cached;
+
+				// Offline fallback: serve the dashboard shell if it's a navigation
+				if (event.request.mode === 'navigate') {
+					const dashCached = await cache.match('/dashboard');
+					if (dashCached) return dashCached;
+					const rootCached = await cache.match('/');
+					if (rootCached) return rootCached;
+				}
+
 				return new Response('Offline', { status: 503 });
 			}
 		})()
