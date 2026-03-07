@@ -1,13 +1,14 @@
 import { json } from '@sveltejs/kit';
 import { getPublishedReports, getReportPdf } from '$lib/server/myed';
 import { getSession, relogin, persistSession } from '$lib/server/session';
+import { getCached, setCache } from '$lib/server/cache';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ cookies, url }) => {
 	let session: any = await getSession(cookies);
 	if (!session) return json({ error: 'Not logged in' }, { status: 401 });
 
-	// Proxy a specific PDF download by report file OID
+	// Proxy a specific PDF download by report file OID — no caching
 	const oid = url.searchParams.get('oid');
 	if (oid) {
 		try {
@@ -31,9 +32,14 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 		}
 	}
 
+	const key = `reports:${session.cookies.slice(0, 32)}`;
+	const cached = getCached(key);
+	if (cached) return json(cached);
+
 	try {
 		const reports = await getPublishedReports(session);
 		persistSession(cookies, session);
+		setCache(key, reports, 300);
 		return json(reports);
 	} catch {
 		const fresh: any = await relogin(cookies);
@@ -42,6 +48,7 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 		try {
 			const reports = await getPublishedReports(fresh);
 			persistSession(cookies, fresh);
+			setCache(key, reports, 300);
 			return json(reports);
 		} catch {
 			return json({ error: 'Failed to load reports' }, { status: 500 });

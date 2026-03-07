@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { selectClass, getAssignments, getClasses } from '$lib/server/myed';
 import { getSession, relogin, persistSession } from '$lib/server/session';
+import { getCached, setCache } from '$lib/server/cache';
 import type { RequestHandler } from './$types';
 
 async function ensureFormData(session: any) {
@@ -25,11 +26,16 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
 	let session: any = await getSession(cookies);
 	if (!session) return json({ error: 'Not logged in' }, { status: 401 });
 
+	const key = `assignments:${session.cookies.slice(0, 32)}:${params.oid}`;
+	const cached = getCached(key);
+	if (cached) return json(cached);
+
 	session._formData = JSON.parse(cookies.get('myed_formdata') ?? '{}');
 
 	try {
 		const assignments = await fetchAssignments(session, params.oid);
 		persistSession(cookies, session);
+		setCache(key, assignments, 15);
 		return json(assignments);
 	} catch {
 		const fresh: any = await relogin(cookies);
@@ -39,6 +45,7 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
 		try {
 			const assignments = await fetchAssignments(fresh, params.oid);
 			persistSession(cookies, fresh);
+			setCache(key, assignments, 15);
 			return json(assignments);
 		} catch {
 			return json({ error: 'Failed to load assignments' }, { status: 500 });
