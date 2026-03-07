@@ -55,4 +55,4 @@ Not affiliated with the BC Ministry of Education, Follett, or MyEducation BC. Th
 
 ## License
 
-MIT
+AGPL-3.0
