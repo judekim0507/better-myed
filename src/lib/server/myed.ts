@@ -198,6 +198,68 @@ export async function selectClass(
 	session.cookies = extractCookies(r, session.cookies);
 }
 
+export interface TermMark {
+	category: string;
+	terms: Record<string, string>;
+}
+
+export interface ClassDetail {
+	termMarks: TermMark[];
+	finalGrade: string;
+}
+
+export async function getClassDetail(session: MyEdSession): Promise<ClassDetail> {
+	const r = await fetch(
+		`${BASE_URL}/portalClassDetail.do?navkey=academics.classes.list.detail`,
+		{ headers: { cookie: session.cookies }, redirect: 'follow' }
+	);
+	const html = await r.text();
+	const $ = cheerio.load(html);
+
+	// Parse Average Summary grid (#dataGridRight)
+	const termMarks: TermMark[] = [];
+	const rightGrid = $('#dataGridRight table');
+	if (rightGrid.length) {
+		// Get column headers (term names)
+		const headers: string[] = [];
+		rightGrid.find('tr.listHeader th').each((_, th) => {
+			const text = $(th).text().trim();
+			if (text && text !== 'Category') headers.push(text);
+		});
+
+		// Rows alternate: category name (with weights) → "Avg" (with actual grades)
+		// Pair them: use category name + Avg values. Keep "Last posted grade" as-is.
+		let pendingCategory = '';
+		rightGrid.find('tr.listCell').each((_, row) => {
+			const cells = $(row).find('td');
+			const category = cells.first().text().trim();
+			const terms: Record<string, string> = {};
+			const dataCells = cells.slice(cells.length - headers.length);
+			dataCells.each((i, cell) => {
+				const val = $(cell).text().trim();
+				if (headers[i] && val) terms[headers[i]] = val;
+			});
+
+			if (category === 'Avg') {
+				// This is the grade row — use the pending category name
+				const label = pendingCategory || 'Average';
+				if (Object.keys(terms).length) termMarks.push({ category: label, terms });
+				pendingCategory = '';
+			} else if (category === 'Last posted grade') {
+				if (Object.keys(terms).length) termMarks.push({ category, terms });
+			} else {
+				// Category name row (weights) — remember name, skip the weight values
+				pendingCategory = category;
+			}
+		});
+	}
+
+	// Parse Final grade
+	const finalGrade = $('td.detailProperty:contains("Final")').next('td.detailValue').text().trim();
+
+	return { termMarks, finalGrade };
+}
+
 export async function getAssignments(session: MyEdSession): Promise<Assignment[]> {
 	const r = await fetch(
 		`${BASE_URL}/portalAssignmentList.do?navkey=academics.classes.list.gcd`,

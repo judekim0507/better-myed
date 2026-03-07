@@ -21,14 +21,25 @@
 		reason: string;
 	}
 
-	type Tab = 'assignments' | 'attendance';
+	interface TermMark {
+		category: string;
+		terms: Record<string, string>;
+	}
+
+	interface ClassDetail {
+		termMarks: TermMark[];
+		finalGrade: string;
+	}
+
+	type Tab = 'overview' | 'attendance';
 
 	let assignments = $state<Assignment[]>([]);
 	let attendance = $state<AttendanceRecord[]>([]);
+	let classDetail = $state<ClassDetail | null>(null);
 	let loading = $state(true);
 	let tabLoading = $state(false);
 	let error = $state('');
-	let tab = $state<Tab>('assignments');
+	let tab = $state<Tab>('overview');
 
 	let className = $state('');
 	let whatIfOpen = $state(false);
@@ -39,7 +50,7 @@
 	let touchDeltaX = $state(0);
 	let swiping = $state(false);
 	const SWIPE_THRESHOLD = 50;
-	const tabs: Tab[] = ['assignments', 'attendance'];
+	const tabs: Tab[] = ['overview', 'attendance'];
 
 	function onTouchStart(e: TouchEvent) {
 		touchStartX = e.touches[0].clientX;
@@ -99,14 +110,20 @@
 		className = url.searchParams.get('name') || '';
 
 		const oid = $page.params.oid;
-		const res = await fetch(`/api/classes/${oid}/assignments`);
-		if (!res.ok) {
+		const assignRes = await fetch(`/api/classes/${oid}/assignments`);
+		if (!assignRes.ok) {
 			error = 'Failed to load assignments';
 			loading = false;
 			return;
 		}
-		assignments = await res.json();
+		assignments = await assignRes.json();
 		loading = false;
+
+		// Fetch detail after assignments (class must be selected first)
+		const detailRes = await fetch(`/api/classes/${oid}/detail`);
+		if (detailRes.ok) {
+			classDetail = await detailRes.json();
+		}
 	});
 
 	async function switchTab(t: Tab) {
@@ -155,7 +172,7 @@
 	<!-- Tabs -->
 	<nav class="border-b border-stone-800/80 bg-stone-950 sticky top-0 z-10">
 		<div class="max-w-6xl mx-auto px-4 md:px-6 flex items-center">
-			{#each [{ key: 'assignments', label: 'Assignments' }, { key: 'attendance', label: 'Attendance' }] as t}
+			{#each [{ key: 'overview', label: 'Overview' }, { key: 'attendance', label: 'Attendance' }] as t}
 				<button
 					onclick={() => switchTab(t.key as Tab)}
 					class="relative press px-4 md:px-5 py-3.5 text-sm whitespace-nowrap transition-colors duration-150 cursor-pointer group
@@ -229,7 +246,72 @@
 					{error}
 				</div>
 			</div>
-		{:else if tab === 'assignments'}
+		{:else if tab === 'overview'}
+			<!-- Term marks -->
+			{#if classDetail && (classDetail.termMarks.length || classDetail.finalGrade)}
+				{@const allTerms = [...new Set(classDetail.termMarks.flatMap((m) => Object.keys(m.terms)))]}
+				{@const colTemplate = `1fr ${allTerms.map(() => '80px').join(' ')}`}
+
+				<!-- Desktop table -->
+				<div class="hidden md:block mb-6 border border-stone-800">
+					<div class="grid gap-0 px-5 py-2.5 bg-stone-900 border-b border-stone-800 text-[10px] font-mono text-stone-500 uppercase tracking-wider" style="grid-template-columns: {colTemplate}">
+						<span>Category</span>
+						{#each allTerms as term}
+							<span class="text-right">{term}</span>
+						{/each}
+					</div>
+					{#each classDetail.termMarks as mark, i}
+						<div
+							class="stagger-in grid gap-0 px-5 py-3 border-b border-stone-800/40 hover:bg-stone-900/40 transition-colors duration-100 items-center"
+							style="grid-template-columns: {colTemplate}; animation-delay: {i * 25}ms"
+						>
+							<span class="text-sm text-stone-200 font-500 truncate pr-4">{mark.category}</span>
+							{#each allTerms as term}
+								<span class="text-right">
+									{#if mark.terms[term]}
+										<span class="inline-block px-2 py-0.5 font-mono text-xs font-600 text-stone-200 bg-stone-800">{mark.terms[term]}</span>
+									{:else}
+										<span class="text-stone-700 font-mono text-xs">--</span>
+									{/if}
+								</span>
+							{/each}
+						</div>
+					{/each}
+					{#if classDetail.finalGrade}
+						<div class="px-5 py-3 flex items-center justify-between">
+							<span class="text-sm text-stone-400 font-500">Final Grade</span>
+							<span class="px-2.5 py-1 font-mono text-sm font-600 text-amber-accent bg-amber-accent/10">{classDetail.finalGrade}</span>
+						</div>
+					{/if}
+				</div>
+
+				<!-- Mobile term marks -->
+				<div class="md:hidden mb-6 border border-stone-800">
+					<div class="px-4 py-2.5 bg-stone-900 border-b border-stone-800">
+						<span class="text-[10px] font-mono font-500 text-stone-500 uppercase tracking-wider">Term Marks</span>
+					</div>
+					{#each classDetail.termMarks as mark, i}
+						<div class="stagger-in px-4 py-3 border-b border-stone-800/40" style="animation-delay: {i * 25}ms">
+							<span class="text-sm text-stone-200 font-500 block mb-2">{mark.category}</span>
+							<div class="flex flex-wrap gap-2">
+								{#each Object.entries(mark.terms) as [term, value]}
+									<div class="flex items-center gap-1.5 bg-stone-900/60 px-2.5 py-1.5 border border-stone-800/60">
+										<span class="text-[10px] font-mono text-stone-500 uppercase">{term}</span>
+										<span class="text-xs font-mono font-600 text-stone-200">{value}</span>
+									</div>
+								{/each}
+							</div>
+						</div>
+					{/each}
+					{#if classDetail.finalGrade}
+						<div class="px-4 py-3 flex items-center justify-between">
+							<span class="text-sm text-stone-400 font-500">Final Grade</span>
+							<span class="px-2.5 py-1 font-mono text-sm font-600 text-amber-accent bg-amber-accent/10">{classDetail.finalGrade}</span>
+						</div>
+					{/if}
+				</div>
+			{/if}
+
 			<!-- Summary bar -->
 			{#if assignments.length}
 				{@const graded = assignments.filter((a) => a.pct && !isNaN(parseInt(a.pct)))}
