@@ -53,9 +53,9 @@ sw.addEventListener('fetch', (event) => {
 				}).catch(() => null);
 
 				// If we have a cached response, return it immediately
-				// and update in background
+				// and revalidate in background
 				if (cached) {
-					networkFetch; // fire and forget
+					networkFetch.catch(() => {});
 					return cached;
 				}
 

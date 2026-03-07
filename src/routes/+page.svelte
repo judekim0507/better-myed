@@ -12,10 +12,9 @@
 	let loading = $state(false);
 	let focused = $state<'user' | 'pass' | null>(null);
 	let remember = $state(true);
-	let shaderContainer = $state<HTMLDivElement | null>(null);
+	let canvas = $state<HTMLCanvasElement | null>(null);
 	let animationId: number | null = null;
-	let renderer: any = null;
-	let threeScript: HTMLScriptElement | null = null;
+	let gl: WebGLRenderingContext | null = null;
 	let heroVisible = $state(false);
 	let featuresVisible = $state(false);
 	let loginVisible = $state(false);
@@ -46,72 +45,68 @@
 	}
 
 	function initShader() {
-		if (!shaderContainer || !(window as any).THREE) return;
-		const THREE = (window as any).THREE;
-		shaderContainer.innerHTML = '';
+		if (!canvas) return;
+		gl = canvas.getContext('webgl');
+		if (!gl) return;
 
-		const camera = new THREE.Camera();
-		camera.position.z = 1;
-		const scene = new THREE.Scene();
-		const geometry = new THREE.PlaneBufferGeometry(2, 2);
+		const vs = gl.createShader(gl.VERTEX_SHADER)!;
+		gl.shaderSource(vs, `attribute vec2 p;void main(){gl_Position=vec4(p,0,1);}`);
+		gl.compileShader(vs);
 
-		const uniforms = {
-			time: { type: 'f', value: 1.0 },
-			resolution: { type: 'v2', value: new THREE.Vector2() },
-		};
+		const fs = gl.createShader(gl.FRAGMENT_SHADER)!;
+		gl.shaderSource(fs, `
+			precision highp float;
+			uniform vec2 resolution;
+			uniform float time;
+			float random(in float x){return fract(sin(x)*1e4);}
+			void main(){
+				vec2 uv=(gl_FragCoord.xy*2.0-resolution.xy)/min(resolution.x,resolution.y);
+				vec2 s=vec2(4,2),v=vec2(256);
+				uv=floor(uv*v/s)/(v/s);
+				float t=time*0.06+random(uv.x)*0.4,w=0.0008;
+				vec3 c=vec3(0);
+				for(int j=0;j<3;j++)for(int i=0;i<5;i++)
+					c[j]+=w*float(i*i)/abs(fract(t-0.01*float(j)+float(i)*0.01)-length(uv));
+				gl_FragColor=vec4(c[2],c[1],c[0],1);
+			}
+		`);
+		gl.compileShader(fs);
 
-		const material = new THREE.ShaderMaterial({
-			uniforms,
-			vertexShader: `void main() { gl_Position = vec4(position, 1.0); }`,
-			fragmentShader: `
-				precision highp float;
-				uniform vec2 resolution;
-				uniform float time;
+		const prog = gl.createProgram()!;
+		gl.attachShader(prog, vs);
+		gl.attachShader(prog, fs);
+		gl.linkProgram(prog);
+		gl.useProgram(prog);
 
-				float random(in float x) { return fract(sin(x)*1e4); }
+		const buf = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+		const loc = gl.getAttribLocation(prog, 'p');
+		gl.enableVertexAttribArray(loc);
+		gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
-				void main(void) {
-					vec2 uv = (gl_FragCoord.xy * 2.0 - resolution.xy) / min(resolution.x, resolution.y);
-					vec2 fMosaicScal = vec2(4.0, 2.0);
-					vec2 vScreenSize = vec2(256, 256);
-					uv.x = floor(uv.x * vScreenSize.x / fMosaicScal.x) / (vScreenSize.x / fMosaicScal.x);
-					uv.y = floor(uv.y * vScreenSize.y / fMosaicScal.y) / (vScreenSize.y / fMosaicScal.y);
-
-					float t = time * 0.06 + random(uv.x) * 0.4;
-					float lineWidth = 0.0008;
-
-					vec3 color = vec3(0.0);
-					for(int j = 0; j < 3; j++){
-						for(int i = 0; i < 5; i++){
-							color[j] += lineWidth * float(i*i) / abs(fract(t - 0.01*float(j) + float(i)*0.01)*1.0 - length(uv));
-						}
-					}
-					gl_FragColor = vec4(color[2], color[1], color[0], 1.0);
-				}
-			`,
-		});
-
-		const mesh = new THREE.Mesh(geometry, material);
-		scene.add(mesh);
-
-		renderer = new THREE.WebGLRenderer();
-		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-		shaderContainer.appendChild(renderer.domElement);
+		const uTime = gl.getUniformLocation(prog, 'time');
+		const uRes = gl.getUniformLocation(prog, 'resolution');
+		let time = 1.0;
 
 		function onResize() {
-			if (!shaderContainer || !renderer) return;
-			const rect = shaderContainer.getBoundingClientRect();
-			renderer.setSize(rect.width, rect.height);
-			uniforms.resolution.value.x = renderer.domElement.width;
-			uniforms.resolution.value.y = renderer.domElement.height;
+			if (!canvas || !gl) return;
+			const dpr = Math.min(window.devicePixelRatio, 2);
+			const rect = canvas.getBoundingClientRect();
+			canvas.width = rect.width * dpr;
+			canvas.height = rect.height * dpr;
+			gl.viewport(0, 0, canvas.width, canvas.height);
 		}
 		onResize();
 		window.addEventListener('resize', onResize);
 
 		function animate() {
 			animationId = requestAnimationFrame(animate);
-			uniforms.time.value += 0.05;
-			renderer.render(scene, camera);
+			if (!gl) return;
+			time += 0.05;
+			gl.uniform1f(uTime, time);
+			gl.uniform2f(uRes, canvas!.width, canvas!.height);
+			gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 		}
 		animate();
 	}
@@ -143,27 +138,25 @@
 	}
 
 	onMount(() => {
-		threeScript = document.createElement('script');
-		threeScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/89/three.min.js';
-		threeScript.onload = () => initShader();
-		document.head.appendChild(threeScript);
-
+		initShader();
 		setTimeout(() => (heroVisible = true), 100);
 	});
 
 	onDestroy(() => {
 		if (animationId) cancelAnimationFrame(animationId);
-		if (renderer) renderer.dispose();
-		if (threeScript && threeScript.parentNode) threeScript.parentNode.removeChild(threeScript);
+		if (gl) {
+			const ext = gl.getExtension('WEBGL_lose_context');
+			if (ext) ext.loseContext();
+		}
 	});
 
 	const features = [
-		{ title: 'Instant grades', desc: 'All classes, assignments, and percentages at a glance. No more clicking through 5 pages.', mono: '0.3s', icon: 'bolt' },
-		{ title: 'What-If calculator', desc: 'Simulate grade changes with live sliders. See exactly how each assignment affects your final.', mono: 'A+', icon: 'calc' },
-		{ title: 'Transcript', desc: 'Full course history and graduation progress in one clean view with credit tracking.', mono: '80cr', icon: 'doc' },
-		{ title: 'Report cards', desc: 'Published reports download instantly as PDFs. No broken Java applets or blank pages.', mono: 'PDF', icon: 'download' },
-		{ title: 'Calendar', desc: 'Assignments and events on a real calendar grid. Navigate months without page reloads.', mono: 'MAR', icon: 'cal' },
-		{ title: 'Mobile-first', desc: 'Install as an app. Haptic feedback, offline support, and native-like experience on your phone.', mono: 'PWA', icon: 'phone' },
+		{ title: 'Instant grades', desc: 'All classes, assignments, and percentages at a glance. No more clicking through 5 pages.', mono: '0.3s' },
+		{ title: 'What-If calculator', desc: 'Simulate grade changes with live sliders. See exactly how each assignment affects your final.', mono: 'A+' },
+		{ title: 'Transcript', desc: 'Full course history and graduation progress in one clean view with credit tracking.', mono: '80cr' },
+		{ title: 'Report cards', desc: 'Published reports download instantly as PDFs. No broken Java applets or blank pages.', mono: 'PDF' },
+		{ title: 'Calendar', desc: 'Assignments and events on a real calendar grid. Navigate months without page reloads.', mono: 'MAR' },
+		{ title: 'Mobile-first', desc: 'Install as an app. Haptic feedback, offline support, and native-like experience on your phone.', mono: 'PWA' },
 	];
 
 </script>
@@ -179,7 +172,7 @@
 	<!-- Hero Section -->
 	<section class="relative min-h-screen flex flex-col">
 		<!-- Shader background -->
-		<div class="absolute inset-0 opacity-30" bind:this={shaderContainer}></div>
+		<canvas class="absolute inset-0 w-full h-full opacity-30" bind:this={canvas}></canvas>
 		<!-- Gradient overlays -->
 		<div class="absolute inset-0 bg-stone-950/20 z-[1]"></div>
 		<div class="absolute bottom-0 left-0 right-0 h-96 bg-gradient-to-t from-stone-950 via-stone-950/80 to-transparent z-[1]"></div>

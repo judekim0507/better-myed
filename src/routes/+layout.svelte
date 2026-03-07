@@ -69,6 +69,7 @@
                 href="https://github.com/judekim0507/better-myed"
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="GitHub repository"
                 class="text-stone-700 hover:text-amber-accent transition-colors duration-200"
             >
                 <svg
