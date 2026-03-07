@@ -133,3 +133,12 @@ html, body {
 .skeleton {
 	animation: shimmer 1.5s ease-in-out infinite;
 }
+
+/* press feedback for interactive elements */
+.press {
+	transition: scale 0.1s ease, opacity 0.1s ease;
+}
+.press:active {
+	scale: 0.98;
+	opacity: 0.8;
+}

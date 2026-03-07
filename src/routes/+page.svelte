@@ -196,7 +196,7 @@
 				</a>
 				<button
 					onclick={() => { showLogin(); }}
-					class="text-[11px] font-mono font-600 text-stone-950 bg-stone-100 px-4 py-2 hover:bg-white transition-colors duration-150 cursor-pointer"
+					class="text-[11px] font-mono font-600 text-stone-950 bg-stone-100 px-4 py-2 hover:bg-white transition-colors duration-150 cursor-pointer press"
 				>
 					Sign in
 				</button>
@@ -231,7 +231,7 @@
 						href="https://github.com/judekim0507/better-myed"
 						target="_blank"
 						rel="noopener noreferrer"
-						class="px-10 py-4 border border-stone-800 text-stone-400 font-display font-500 text-sm tracking-wide hover:border-stone-600 hover:text-stone-200 transition-all duration-200 cursor-pointer"
+						class="px-10 py-4 border border-stone-800 text-stone-400 font-display font-500 text-sm tracking-wide hover:border-stone-600 hover:text-stone-200 transition-all duration-200 cursor-pointer press"
 					>
 						View source
 					</a>
@@ -262,7 +262,7 @@
 			<div class="grid md:grid-cols-3 gap-px bg-stone-800/30">
 				{#each features as feature, i}
 					<div
-						class="feature-card group bg-stone-950 p-7 md:p-8 {featuresVisible ? 'reveal' : 'reveal-initial'}"
+						class="feature-card press group bg-stone-950 p-7 md:p-8 {featuresVisible ? 'reveal' : 'reveal-initial'}"
 						style="transition-delay: {80 + i * 60}ms"
 					>
 						<div class="flex items-center justify-between mb-5">

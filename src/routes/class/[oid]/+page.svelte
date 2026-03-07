@@ -97,7 +97,7 @@
 		<div class="max-w-6xl mx-auto px-4 md:px-6 py-4 flex items-center gap-4 min-w-0">
 			<a
 				href="/dashboard"
-				class="flex items-center gap-2 text-stone-500 hover:text-stone-200 transition-colors duration-150 cursor-pointer group shrink-0"
+				class="flex items-center gap-2 text-stone-500 hover:text-stone-200 transition-colors duration-150 cursor-pointer press group shrink-0"
 			>
 				<span class="text-xs group-hover:-translate-x-0.5 transition-transform duration-150">←</span>
 				<span class="text-[11px] font-mono uppercase tracking-wider">Back</span>
@@ -117,7 +117,7 @@
 			{#each [{ key: 'assignments', label: 'Assignments' }, { key: 'attendance', label: 'Attendance' }] as t}
 				<button
 					onclick={() => switchTab(t.key as Tab)}
-					class="relative px-4 md:px-5 py-3.5 text-sm whitespace-nowrap transition-colors duration-150 cursor-pointer group
+					class="relative press px-4 md:px-5 py-3.5 text-sm whitespace-nowrap transition-colors duration-150 cursor-pointer group
 						{tab === t.key ? 'text-stone-100' : 'text-stone-500 hover:text-stone-300'}"
 				>
 					{t.label}
@@ -130,7 +130,7 @@
 			{#if !loading && assignments.some((a) => a.score && a.score.includes('/'))}
 				<button
 					onclick={() => { haptic.trigger('medium'); whatIfOpen = true; }}
-					class="ml-auto px-3 py-1.5 text-[11px] font-mono uppercase tracking-wider text-amber-accent hover:text-amber-accent/80 transition-colors duration-150 cursor-pointer"
+					class="ml-auto press px-3 py-1.5 text-[11px] font-mono uppercase tracking-wider text-amber-accent hover:text-amber-accent/80 transition-colors duration-150 cursor-pointer"
 				>
 					What If?
 				</button>
@@ -246,7 +246,7 @@
 			<div class="md:hidden grid gap-[1px] bg-stone-800/50">
 				{#each assignments as a, i}
 					<div
-						class="stagger-in bg-stone-950 px-4 py-3.5 active:bg-stone-900 transition-colors duration-100"
+						class="stagger-in press bg-stone-950 px-4 py-3.5 active:bg-stone-900 transition-colors duration-100"
 						style="animation-delay: {i * 25}ms"
 					>
 						<div class="flex items-start justify-between gap-3 mb-2">

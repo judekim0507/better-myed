@@ -421,7 +421,7 @@
             {#each tabs as t}
                 <button
                     onclick={() => loadTab(t.key)}
-                    class="relative px-4 md:px-5 py-3.5 text-sm whitespace-nowrap transition-colors duration-150 cursor-pointer group
+                    class="relative press px-4 md:px-5 py-3.5 text-sm whitespace-nowrap transition-colors duration-150 cursor-pointer group
 						{tab === t.key ? 'text-stone-100' : 'text-stone-500 hover:text-stone-300'}"
                 >
                     {t.label}
@@ -858,7 +858,7 @@
                                 cls.name,
                             )}"
                             onclick={() => haptic.trigger("light")}
-                            class="stagger-in grid grid-cols-[1fr_160px_80px_80px] gap-0 px-5 py-3.5 border-b border-stone-800/40 hover:bg-stone-900/50 transition-colors duration-100 group"
+                            class="stagger-in press grid grid-cols-[1fr_160px_80px_80px] gap-0 px-5 py-3.5 border-b border-stone-800/40 hover:bg-stone-900/50 transition-colors duration-100 group"
                             style="animation-delay: {160 + i * 35}ms"
                         >
                             <span class="flex items-center gap-3 min-w-0">
@@ -909,7 +909,7 @@
                                 cls.name,
                             )}"
                             onclick={() => haptic.trigger("light")}
-                            class="stagger-in block bg-stone-950 px-4 py-3.5 active:bg-stone-900 transition-colors duration-100"
+                            class="stagger-in press block bg-stone-950 px-4 py-3.5 active:bg-stone-900 transition-colors duration-100"
                             style="animation-delay: {160 + i * 35}ms"
                         >
                             <div
@@ -1081,7 +1081,7 @@
                         <button
                             onclick={() => navCalendar("prev")}
                             disabled={calendarNav}
-                            class="px-3 py-1.5 text-stone-500 hover:text-stone-200 transition-colors duration-150 cursor-pointer disabled:opacity-30"
+                            class="press px-3 py-1.5 text-stone-500 hover:text-stone-200 transition-colors duration-150 cursor-pointer disabled:opacity-30"
                         >
                             <span class="text-xs font-mono">&larr; Prev</span>
                         </button>
@@ -1095,7 +1095,7 @@
                         <button
                             onclick={() => navCalendar("next")}
                             disabled={calendarNav}
-                            class="px-3 py-1.5 text-stone-500 hover:text-stone-200 transition-colors duration-150 cursor-pointer disabled:opacity-30"
+                            class="press px-3 py-1.5 text-stone-500 hover:text-stone-200 transition-colors duration-150 cursor-pointer disabled:opacity-30"
                         >
                             <span class="text-xs font-mono">Next &rarr;</span>
                         </button>
