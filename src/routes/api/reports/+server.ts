@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { getPublishedReports, getReportPdf } from '$lib/server/myed';
 import { getSession, relogin, persistSession } from '$lib/server/session';
-import { getCached, setCache } from '$lib/server/cache';
+import { getCached, setCache, sessionKey } from '$lib/server/cache';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ cookies, url }) => {
@@ -32,7 +32,7 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 		}
 	}
 
-	const key = `reports:${session.cookies.slice(0, 32)}`;
+	let key = sessionKey('reports', session.cookies);
 	const cached = getCached(key);
 	if (cached) return json(cached);
 
@@ -45,6 +45,7 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 		const fresh: any = await relogin(cookies);
 		if (!fresh) return json({ error: 'Session expired' }, { status: 401 });
 
+		key = sessionKey('reports', fresh.cookies);
 		try {
 			const reports = await getPublishedReports(fresh);
 			persistSession(cookies, fresh);

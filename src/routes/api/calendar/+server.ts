@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { getCalendar, navigateCalendarMonth } from '$lib/server/myed';
 import { getSession, relogin, persistSession } from '$lib/server/session';
-import { getCached, setCache } from '$lib/server/cache';
+import { getCached, setCache, sessionKey } from '$lib/server/cache';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ cookies, url }) => {
@@ -16,7 +16,7 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 
 	// Only cache the default calendar view (no navigation)
 	if (!direction) {
-		const key = `calendar:${session.cookies.slice(0, 32)}`;
+		const key = sessionKey('calendar', session.cookies);
 		const cached = getCached(key);
 		if (cached) return json(cached);
 	}
@@ -26,7 +26,7 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 			? await navigateCalendarMonth(session, direction)
 			: await getCalendar(session);
 		persistSession(cookies, session);
-		if (!direction) setCache(`calendar:${session.cookies.slice(0, 32)}`, data, 120);
+		if (!direction) setCache(sessionKey('calendar', session.cookies), data, 120);
 		return json(data);
 	} catch {
 		const fresh: any = await relogin(cookies);

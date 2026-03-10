@@ -1,14 +1,14 @@
 import { json } from '@sveltejs/kit';
 import { getStudentInfo } from '$lib/server/myed';
 import { getSession, relogin } from '$lib/server/session';
-import { getCached, setCache } from '$lib/server/cache';
+import { getCached, setCache, sessionKey } from '$lib/server/cache';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ cookies }) => {
 	let session = await getSession(cookies);
 	if (!session) return json({ error: 'Not logged in' }, { status: 401 });
 
-	const key = `student:${session.cookies.slice(0, 32)}`;
+	let key = sessionKey('student', session.cookies);
 	const cached = getCached(key);
 	if (cached) return json(cached);
 
@@ -19,6 +19,7 @@ export const GET: RequestHandler = async ({ cookies }) => {
 	} catch {
 		session = await relogin(cookies);
 		if (!session) return json({ error: 'Session expired' }, { status: 401 });
+		key = sessionKey('student', session.cookies);
 		try {
 			const data = await getStudentInfo(session);
 			setCache(key, data, 300);

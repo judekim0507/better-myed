@@ -1,4 +1,12 @@
+import { createHash } from 'crypto';
+
 const cache = new Map<string, { data: unknown; expires: number }>();
+
+/** Hash the full session cookie string into a safe, unique cache key. */
+export function sessionKey(prefix: string, sessionCookies: string, ...parts: string[]): string {
+	const hash = createHash('sha256').update(sessionCookies).digest('hex').slice(0, 16);
+	return [prefix, hash, ...parts].join(':');
+}
 
 export function getCached<T>(key: string): T | null {
 	const entry = cache.get(key);
