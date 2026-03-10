@@ -196,8 +196,18 @@ export async function selectClass(
 		redirect: 'follow',
 	});
 	const html = await r.text();
+
+	if (html.includes('Not Logged On')) {
+		throw new Error('Session expired');
+	}
+
 	session.token = extractToken(html);
 	session.cookies = extractCookies(r, session.cookies);
+	// Refresh form data so the next selectClass call has a fresh Struts token
+	const freshFormData = extractFormData(html, 'classListForm');
+	if (Object.keys(freshFormData).length > 0) {
+		(session as any)._formData = freshFormData;
+	}
 }
 
 export interface TermMark {
@@ -268,6 +278,11 @@ export async function getAssignments(session: MyEdSession): Promise<Assignment[]
 		{ headers: { cookie: session.cookies }, redirect: 'follow' }
 	);
 	const html = await r.text();
+
+	if (html.includes('Not Logged On')) {
+		throw new Error('Session expired');
+	}
+
 	session.token = extractToken(html);
 
 	const $ = cheerio.load(html);

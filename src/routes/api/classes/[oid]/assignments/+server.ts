@@ -35,7 +35,8 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
 	try {
 		const assignments = await fetchAssignments(session, params.oid);
 		persistSession(cookies, session);
-		setCache(key, assignments, 15);
+		// Only cache non-empty results to avoid caching failed class selections
+		if (assignments.length > 0) setCache(key, assignments, 15);
 		return json(assignments);
 	} catch {
 		const fresh: any = await relogin(cookies);
@@ -46,7 +47,7 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
 		try {
 			const assignments = await fetchAssignments(fresh, params.oid);
 			persistSession(cookies, fresh);
-			setCache(key, assignments, 15);
+			if (assignments.length > 0) setCache(key, assignments, 15);
 			return json(assignments);
 		} catch {
 			return json({ error: 'Failed to load assignments' }, { status: 500 });
