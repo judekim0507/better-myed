@@ -119,6 +119,8 @@ export async function login(
 		const url = location.startsWith('http')
 			? location
 			: `https://myeducation.gov.bc.ca${location}`;
+		// Only follow redirects to the expected domain
+		if (!url.startsWith('https://myeducation.gov.bc.ca')) break;
 		r3 = await fetch(url, {
 			headers: { cookie: cookies },
 			redirect: 'manual',
@@ -566,7 +568,15 @@ export async function getReportPdf(session: MyEdSession, reportOid: string): Pro
 		throw new Error('Could not find PDF URL in download response');
 	}
 
-	return fetch(pdfMatch[1], {
+	// Resolve and validate the URL stays within the expected domain
+	const pdfUrl = pdfMatch[1].startsWith('http')
+		? pdfMatch[1]
+		: `${BASE_URL}/${pdfMatch[1].replace(/^\//, '')}`;
+	if (!pdfUrl.startsWith('https://myeducation.gov.bc.ca')) {
+		throw new Error('Unexpected PDF URL domain');
+	}
+
+	return fetch(pdfUrl, {
 		headers: { cookie: session.cookies },
 		redirect: 'follow',
 	});

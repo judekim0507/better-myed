@@ -27,6 +27,13 @@ sw.addEventListener('activate', (event) => {
 	);
 });
 
+// Listen for logout messages from the client — clear all cached API data
+sw.addEventListener('message', (event) => {
+	if (event.data?.type === 'LOGOUT') {
+		caches.delete(API_CACHE);
+	}
+});
+
 // Fetch: serve cached assets, stale-while-revalidate for API, network-first for pages
 sw.addEventListener('fetch', (event) => {
 	if (event.request.method !== 'GET') return;

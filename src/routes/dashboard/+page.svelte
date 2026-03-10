@@ -412,6 +412,7 @@
             <button
                 onclick={async () => {
                     await fetch("/api/logout", { method: "POST" });
+                    navigator.serviceWorker?.controller?.postMessage({ type: 'LOGOUT' });
                     goto("/");
                 }}
                 class="text-[11px] font-mono text-stone-500 uppercase tracking-wider hover:text-stone-300 transition-colors duration-150 cursor-pointer"
