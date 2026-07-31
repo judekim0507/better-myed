@@ -1,11 +1,12 @@
 import type { Cookies } from '@sveltejs/kit';
+import { dev } from '$app/environment';
 import { login, type MyEdSession } from './myed';
 import { decryptCreds } from './creds';
 
 const COOKIE_OPTS = {
 	path: '/',
 	httpOnly: true,
-	secure: true,
+	secure: !dev,
 	sameSite: 'lax' as const,
 };
 
