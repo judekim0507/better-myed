@@ -44,8 +44,8 @@ bun run preview
 
 ## How it works
 
-1. Credentials hit MyEd's REST API (`/app/rest/auth`) → JWT
-2. JWT exchanged for a Struts session via `/app/rest/aspen/sso`
+1. Credentials hit MyEd's REST API (`/app/rest/auth`) → auth token + session ID
+2. Token exchanged for a Struts session via `/app/rest/aspen/sso` (POST with `authToken`, `deploymentId`, `aspenSessionId`), with fallbacks for older exchange patterns
 3. SvelteKit API routes proxy all requests server-side, parse HTML with Cheerio, return JSON
 4. Frontend never talks to MyEd directly — no CORS issues
 
