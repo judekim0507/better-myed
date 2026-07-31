@@ -1931,37 +1931,11 @@
                             <h3
                                 class="font-display font-600 text-stone-200 text-base mb-1"
                             >
-                                Built by Jude Kim
+                                BETTER-MYED
                             </h3>
                             <p class="text-stone-600 text-xs">
                                 Because students deserve better.
                             </p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <a
-                                href="https://judekim.com"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="px-3 py-1.5 border border-stone-800 text-[11px] font-mono text-stone-500 hover:border-amber-accent hover:text-amber-accent transition-colors duration-150"
-                            >
-                                Website
-                            </a>
-                            <a
-                                href="https://github.com/judekim0507/better-myed"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="px-3 py-1.5 border border-stone-800 text-[11px] font-mono text-stone-500 hover:border-amber-accent hover:text-amber-accent transition-colors duration-150"
-                            >
-                                GitHub
-                            </a>
-                            <a
-                                href="https://judekim.com/support"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="px-3 py-1.5 border border-amber-accent/30 bg-amber-accent/5 text-[11px] font-mono text-amber-accent hover:bg-amber-accent/10 hover:border-amber-accent/50 transition-colors duration-150"
-                            >
-                                Support
-                            </a>
                         </div>
                     </div>
                 </div>
