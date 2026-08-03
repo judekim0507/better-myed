@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { selectClass, getAssignments, getClasses } from '$lib/server/myed';
+import { withSelectedClass, getAssignments, getClasses } from '$lib/server/myed';
 import { getSession, relogin, persistSession } from '$lib/server/session';
 import { getCached, setCache, sessionKey } from '$lib/server/cache';
 import type { RequestHandler } from './$types';
@@ -12,8 +12,7 @@ async function ensureFormData(session: any) {
 
 async function fetchAssignments(session: any, oid: string) {
 	await ensureFormData(session);
-	await selectClass(session, oid);
-	return getAssignments(session);
+	return withSelectedClass(session, oid, getAssignments);
 }
 
 const OID_PATTERN = /^[A-Za-z0-9]{10,20}$/;

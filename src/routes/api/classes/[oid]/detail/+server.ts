@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { selectClass, getClasses, getClassDetail } from '$lib/server/myed';
+import { withSelectedClass, getClasses, getClassDetail } from '$lib/server/myed';
 import { getSession, relogin, persistSession } from '$lib/server/session';
 import { getCached, setCache, sessionKey } from '$lib/server/cache';
 import type { RequestHandler } from './$types';
@@ -8,8 +8,7 @@ async function fetchDetail(session: any, oid: string) {
 	if (!session._formData || Object.keys(session._formData).length === 0) {
 		await getClasses(session);
 	}
-	await selectClass(session, oid);
-	return getClassDetail(session);
+	return withSelectedClass(session, oid, getClassDetail);
 }
 
 const OID_PATTERN = /^[A-Za-z0-9]{10,20}$/;

@@ -65,10 +65,15 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 	});
 
 	if (remember) {
-		cookies.set('myed_creds', encryptCreds(username, password), {
-			...COOKIE_OPTS,
-			maxAge: 60 * 60 * 24 * 7, // 7 days (reduced from 30)
-		});
+		const encryptedCreds = encryptCreds(username, password);
+		if (encryptedCreds) {
+			cookies.set('myed_creds', encryptedCreds, {
+				...COOKIE_OPTS,
+				maxAge: 60 * 60 * 24 * 7, // 7 days (reduced from 30)
+			});
+		} else {
+			cookies.delete('myed_creds', { path: '/' });
+		}
 	} else {
 		cookies.delete('myed_creds', { path: '/' });
 	}

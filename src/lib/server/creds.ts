@@ -9,8 +9,8 @@ const KEY = CREDS_KEY_HEX
 	? Buffer.from(CREDS_KEY_HEX, 'hex')
 	: null;
 
-export function encryptCreds(username: string, password: string): string {
-	if (!KEY) throw new Error('CREDS_KEY not configured');
+export function encryptCreds(username: string, password: string): string | null {
+	if (!KEY) return null;
 	const iv = randomBytes(16);
 	const cipher = createCipheriv('aes-256-gcm', KEY, iv);
 	const payload = JSON.stringify({ username, password });

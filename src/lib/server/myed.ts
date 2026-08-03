@@ -306,6 +306,41 @@ export async function selectClass(
 	}
 }
 
+// Aspen stores the active class in the server-side session. Requests for the
+// same student must select and read a class as one operation, otherwise a
+// concurrent request can switch the active class between those two steps.
+const classSelectionLocks = new Map<string, Promise<void>>();
+
+function classSelectionLockKey(cookies: string): string {
+	return cookies.match(/(?:^|;\s*)JSESSIONID=([^;]+)/)?.[1] ?? cookies;
+}
+
+export async function withSelectedClass<T>(
+	session: MyEdSession,
+	classOid: string,
+	read: (session: MyEdSession) => Promise<T>
+): Promise<T> {
+	const key = classSelectionLockKey(session.cookies);
+	const previous = classSelectionLocks.get(key) ?? Promise.resolve();
+	let release!: () => void;
+	const current = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	const queued = previous.then(() => current);
+	classSelectionLocks.set(key, queued);
+
+	await previous;
+	try {
+		await selectClass(session, classOid);
+		return await read(session);
+	} finally {
+		release();
+		if (classSelectionLocks.get(key) === queued) {
+			classSelectionLocks.delete(key);
+		}
+	}
+}
+
 export interface TermMark {
 	category: string;
 	terms: Record<string, string>;
