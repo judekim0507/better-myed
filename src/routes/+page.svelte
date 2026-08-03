@@ -30,7 +30,12 @@
 				body: JSON.stringify({ username, password, remember }),
 			});
 			if (!res.ok) {
-				error = 'Invalid credentials';
+				let msg = 'Invalid credentials';
+				try {
+					const data = await res.json();
+					if (data?.error) msg = data.error;
+				} catch {}
+				error = msg;
 				haptic.trigger('error');
 				return;
 			}

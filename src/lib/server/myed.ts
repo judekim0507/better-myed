@@ -68,12 +68,62 @@ function extractToken(html: string): string | undefined {
 	return $('input[name="org.apache.struts.taglib.html.TOKEN"]').attr('value');
 }
 
+const REST_URL = 'https://myeducation.gov.bc.ca/app/rest';
+const UA =
+	'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
+
+/**
+ * Fetch a URL and follow same-origin redirects manually so we can capture
+ * every Set-Cookie along the chain.
+ */
+async function resolveRedirectChain(
+	startUrl: string,
+	cookies: string,
+	maxRedirects = 10
+): Promise<{ cookies: string; status: number; body: string }> {
+	let url = startUrl;
+	let out = cookies;
+	let r = await fetch(url, { headers: { cookie: out }, redirect: 'manual' });
+	out = extractCookies(r, out);
+
+	let redirects = 0;
+	while (
+		(r.status === 301 || r.status === 302 || r.status === 303 || r.status === 307 || r.status === 308) &&
+		redirects < maxRedirects
+	) {
+		const location = r.headers.get('location');
+		if (!location) break;
+		const next = new URL(location, url).toString();
+		// Only follow redirects to the expected domain
+		if (!next.startsWith('https://myeducation.gov.bc.ca')) break;
+		url = next;
+		r = await fetch(url, { headers: { cookie: out }, redirect: 'manual' });
+		out = extractCookies(r, out);
+		redirects++;
+	}
+
+	const body = await r.text().catch(() => '');
+	return { cookies: out, status: r.status, body };
+}
+
+/** Quick check that the cookies actually hold a logged-in Aspen session. */
+async function isLoggedIn(cookies: string): Promise<boolean> {
+	try {
+		const r = await fetch(`${BASE_URL}/home.do`, {
+			headers: { cookie: cookies },
+			redirect: 'follow',
+		});
+		const html = await r.text();
+		return r.status === 200 && !html.toLowerCase().includes('not logged on');
+	} catch {
+		return false;
+	}
+}
+
 export async function login(
 	username: string,
 	password: string
 ): Promise<MyEdSession | null> {
-	let cookies = '';
-
 	// Step 1: Invalidate existing SSO
 	const r1 = await fetch(`${BASE_URL}/rest/vithar/ssoVerify/invalidate`, {
 		method: 'POST',
@@ -81,15 +131,18 @@ export async function login(
 		body: JSON.stringify({ withCredentials: true }),
 		redirect: 'manual',
 	});
-	cookies = extractCookies(r1, cookies);
+	let cookies = extractCookies(r1, '');
 
-	// Step 2: Auth via REST API -> JWT
-	const r2 = await fetch('https://myeducation.gov.bc.ca/app/rest/auth', {
+	// Step 2: Auth via REST API -> authToken + aspenSessionId
+	const r2 = await fetch(`${REST_URL}/auth`, {
 		method: 'POST',
 		headers: {
 			'content-type': 'application/x-www-form-urlencoded',
 			accept: 'application/json',
-			deploymentid: 'aspen',
+			deploymentId: 'aspen',
+			origin: 'https://myeducation.gov.bc.ca',
+			referer: 'https://myeducation.gov.bc.ca/aspen-login/?deploymentId=aspen',
+			'user-agent': UA,
 			cookie: cookies,
 		},
 		body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
@@ -99,36 +152,79 @@ export async function login(
 
 	if (r2.status !== 200) return null;
 
-	const authData = await r2.json();
-	const token = authData.authToken ?? authData.token;
-	if (!token) return null;
+	const authData = (await r2.json().catch(() => null)) as Record<string, unknown> | null;
+	if (!authData) return null;
+	const token = (authData.authToken ?? authData.token) as string | undefined;
+	const sessionId = (authData.aspenSessionId ?? authData.sessionId) as string | undefined;
 
-	// Step 3: Exchange token for Aspen session
-	const ssoUrl = `https://myeducation.gov.bc.ca/app/rest/aspen/sso?authToken=${encodeURIComponent(token)}&deploymentId=aspen`;
-	let r3 = await fetch(ssoUrl, {
-		headers: { cookie: cookies },
-		redirect: 'manual',
+	// Step 3: Exchange the auth token for an Aspen session. MyEd changed this
+	// flow — the old GET with an authToken query param no longer works. Try the
+	// current exchange patterns in order and verify each before accepting it.
+	const attempts: Array<() => Promise<string | null>> = [];
+
+	// Current desktop-portal flow: GET, auth state held server-side in the
+	// JSESSIONID that /app/rest/auth set.
+	attempts.push(async () => {
+		const res = await resolveRedirectChain(
+			`${REST_URL}/aspen/sso?deploymentId=aspen`,
+			cookies
+		);
+		return res.cookies;
 	});
-	cookies = extractCookies(r3, cookies);
 
-	// Follow redirects manually to capture all cookies
-	let maxRedirects = 5;
-	while (maxRedirects-- > 0 && (r3.status === 302 || r3.status === 307)) {
-		const location = r3.headers.get('location');
-		if (!location) break;
-		const url = location.startsWith('http')
-			? location
-			: `https://myeducation.gov.bc.ca${location}`;
-		// Only follow redirects to the expected domain
-		if (!url.startsWith('https://myeducation.gov.bc.ca')) break;
-		r3 = await fetch(url, {
-			headers: { cookie: cookies },
-			redirect: 'manual',
+	// Current Aspen Go flow: POST authToken + deploymentId + aspenSessionId.
+	if (token) {
+		attempts.push(async () => {
+			const body = new URLSearchParams({ authToken: token, deploymentId: 'aspen' });
+			if (sessionId) body.set('aspenSessionId', sessionId);
+			const r = await fetch(`${REST_URL}/aspen/sso`, {
+				method: 'POST',
+				headers: {
+					'content-type': 'application/x-www-form-urlencoded',
+					accept: 'application/json',
+					origin: 'https://myeducation.gov.bc.ca',
+					referer: 'https://myeducation.gov.bc.ca/aspen-go/landing',
+					'user-agent': UA,
+					cookie: cookies,
+				},
+				body: body.toString(),
+				redirect: 'manual',
+			});
+			let c = extractCookies(r, cookies);
+			// Browsers turn a 301/302/303 into a GET after the POST
+			if (r.status === 301 || r.status === 302 || r.status === 303) {
+				const loc = r.headers.get('location');
+				if (loc) {
+					const next = new URL(loc, `${REST_URL}/aspen/sso`).toString();
+					if (next.startsWith('https://myeducation.gov.bc.ca')) {
+						const res = await resolveRedirectChain(next, c);
+						c = res.cookies;
+					}
+				}
+			}
+			return c;
 		});
-		cookies = extractCookies(r3, cookies);
 	}
 
-	return { cookies };
+	// Legacy flow: GET with authToken query param (pre-change behavior).
+	if (token) {
+		attempts.push(async () => {
+			const res = await resolveRedirectChain(
+				`${REST_URL}/aspen/sso?authToken=${encodeURIComponent(token)}&deploymentId=aspen`,
+				cookies
+			);
+			return res.cookies;
+		});
+	}
+
+	for (const attempt of attempts) {
+		const candidate = await attempt();
+		if (candidate && (await isLoggedIn(candidate))) {
+			return { cookies: candidate };
+		}
+	}
+
+	return null;
 }
 
 export async function getClasses(session: MyEdSession): Promise<ClassInfo[]> {
